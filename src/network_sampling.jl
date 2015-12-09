@@ -70,22 +70,39 @@ function GSN(adj_mat, data, treatment, burnin, nsamples, thinning)
     samples = zeros(nsamples, N)
     cur_sample_idx = 1
     all_idxs = 1:N
+
+    var_order = sample(1:N, burnin+(nsamples*thinning))
+    prob_cache = predict(psm, loop_data)
+    startTime = time()
     for i in 1:(burnin+(nsamples*thinning))
         if i % 1000 == 0
-            println(i)
+            println("Sample $i, $(round(Int, 1000 / (time() - startTime))) samples per second")
+            startTime = time()
         end
         # choose the next sample at random
-        next_var = sample(1:N, 1)
+        next_var = var_order[i]
+
         # draw a value for the treatment
-        prediction = rand(Binomial(1, predict(psm, loop_data[next_var,:])[1]), 1)
+        prediction = rand(Binomial(1, prob_cache[next_var]), 1)[1]
+
         # update the treatment vector
+        val_changed = loop_data[next_var, :t] != prediction
         loop_data[next_var, :t] = prediction 
+
         # grab the indices of neighbors
-        (adj_vals, _, _) = findnz(adj_mat[:, next_var])
+        (adj_vals, _, _) = findnz(adj_mat[:, [next_var]])
+
         # include the current node in the set of aggregates to be updated
         update_vals = [next_var;adj_vals]
+
         # udpate covariates
         update_covariates!(adj_mat, loop_data, treatment, update_vals)
+
+        # update prob cache of neighbors
+        if val_changed
+            prob_cache[adj_vals] = predict(psm, loop_data[adj_vals, :])
+        end
+
         # save our sample? 
         if i > burnin && i % thinning == 0
             # Yes. Do it.
