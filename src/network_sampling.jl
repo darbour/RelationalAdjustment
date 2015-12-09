@@ -1,12 +1,18 @@
 using GLM 
 using DataFrames
 
-function create_aggregate(adj_mat, values, aggregate_function)
-    vals = zeros(size(adj_mat, 1))
-    for i in 1:size(adj_mat, 1)
-        vals[i] = aggregate_function(values[map(Bool, adj_mat[i,:]), :])
+function create_aggregate(adj_mat, values, aggregate_function, update_rows)
+    vals = zeros(length(update_rows))
+    for (v,i) in enumerate(update_rows)
+        (_, indices, _) = findnz(adj_mat[i,:])
+        vals[v] = aggregate_function(values[indices])
     end
     return vals
+end
+
+function create_aggregate(adj_mat, values, aggregate_function)
+    update_rows = 1:size(adj_mat, 1)
+    return create_aggregate(adj_mat, values, aggregate_function, update_rows)
 end
 
 function create_covariates(adj_mat, data, aggregate_functions)
@@ -27,11 +33,16 @@ function create_covariates(adj_mat, data, aggregate_functions)
     return data
 end
 
-function update_covariates!(adj_mat, data, update_cov )
+function update_covariates!(adj_mat, data, update_cov, update_indices)
     agg_functions = [mean]
     for agg_function in agg_functions
-        data[parse("$(update_cov)_$(agg_function)")] = create_aggregate(adj_mat, data[parse(update_cov)], agg_function)
+        data[parse("$(update_cov)_$(agg_function)")][update_indices] = create_aggregate(adj_mat, data[parse(update_cov)], agg_function, update_indices)
     end
+end
+
+function update_covariates!(adj_mat, data, update_cov)
+    update_indices = 1:size(adj_mat, 1)
+    return update_covariates!(adj_mat, data, update_cov, update_indices)
 end
 
 function RPSM(adj_mat, data, treatment)
@@ -57,17 +68,23 @@ function GSN(adj_mat, data, treatment, burnin, nsamples, thinning)
     loop_data = copy(covariates)
     update_covariates!(adj_mat, loop_data, treatment)
     samples = zeros(nsamples, N)
+    cur_sample_idx = 1
+    all_idxs = 1:N
     for i in 1:(burnin+(nsamples*thinning))
-        if i % 100 == 0
+        if i % 1000 == 0
             println(i)
         end
         # choose the next sample at random
         next_var = sample(1:N, 1)
         prediction = rand(Binomial(1, predict(psm, loop_data[next_var,:])[1]), 1)
-        loop_data[:t][next_var] = prediction 
-        update_covariates!(adj_mat, loop_data, treatment)
+        loop_data[next_var, :t] = prediction 
+        adj_vals = map(Bool, adj_mat[:, next_var])
+        (adj_vals, adj_vals_j, V) = findnz(adj_mat[:, next_var])
+        update_vals = [next_var;adj_vals]
+        update_covariates!(adj_mat, loop_data, treatment, update_vals)
         if i > burnin && i % thinning == 0
-            samples[i-burnin, :] = loop_data[:t]
+            samples[cur_sample_idx, :] = copy(loop_data[:t])
+            cur_sample_idx += 1
         end
     end
     println(samples[1:10, 1:10])
@@ -76,4 +93,4 @@ end
 
 adj_mat = readcsv("network.csv")
 data = readtable("network_attrs.csv")
-GSN(adj_mat, data, "t", 50, 300, 1)
+GSN(adj_mat, data, "t", 50, 300, 1000)
