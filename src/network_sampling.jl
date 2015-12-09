@@ -76,13 +76,19 @@ function GSN(adj_mat, data, treatment, burnin, nsamples, thinning)
         end
         # choose the next sample at random
         next_var = sample(1:N, 1)
+        # draw a value for the treatment
         prediction = rand(Binomial(1, predict(psm, loop_data[next_var,:])[1]), 1)
+        # update the treatment vector
         loop_data[next_var, :t] = prediction 
-        adj_vals = map(Bool, adj_mat[:, next_var])
-        (adj_vals, adj_vals_j, V) = findnz(adj_mat[:, next_var])
+        # grab the indices of neighbors
+        (adj_vals, _, _) = findnz(adj_mat[:, next_var])
+        # include the current node in the set of aggregates to be updated
         update_vals = [next_var;adj_vals]
+        # udpate covariates
         update_covariates!(adj_mat, loop_data, treatment, update_vals)
+        # save our sample? 
         if i > burnin && i % thinning == 0
+            # Yes. Do it.
             samples[cur_sample_idx, :] = copy(loop_data[:t])
             cur_sample_idx += 1
         end
