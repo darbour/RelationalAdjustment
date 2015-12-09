@@ -93,10 +93,7 @@ function GSN(adj_mat, data, treatment, burnin, nsamples, thinning)
             cur_sample_idx += 1
         end
     end
-    println(samples[1:10, 1:10])
+    
     return samples
 end
 
-adj_mat = readcsv("network.csv")
-data = readtable("network_attrs.csv")
-GSN(adj_mat, data, "t", 50, 300, 1000)
