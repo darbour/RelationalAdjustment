@@ -21,15 +21,3 @@ ht <- function(exposure, outcome, eprob.fun) {
   return(list("mean"=exposure.outcome, "variance"=exposure.variance))
 }
 
-n <- 1000
-exposure <- sample(c("a", "b"), size=n, replace=TRUE)
-
-eprob.fun <- function(i, j, e) {
-  if(i == j) {
-    return(0.5)
-  } else {
-    return(0.25)
-  }
-}
-outcome <- ifelse(exposure=="a", rnorm(n), rnorm(n, mean=1, sd=10))
-print(ht(exposure, outcome, eprob.fun))
