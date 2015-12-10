@@ -15,14 +15,14 @@ burn.in <- 100
 iter <- 0
 while(iter <= burn.in) {
     iter <- iter + 1
-    t.friends <- adj.mat %*% treatment 
+    t.friends <- (adj.mat %*% treatment) / rowSums(adj.mat)
     t.prob <- 1 / (1 + exp(-(scale(c1 + c2 + c3 + rnorm(nsubjects)) + scale(t.friends)) ) )
     treatment <- rbinom(nsubjects, 1, prob=t.prob)
 }
 
 print(summary(glm(t ~ ., data=data.frame(c1, c2, c3, t=treatment, t.friends))))
 
-o <- c1 + c2 + c3 + treatment + rnorm(nsubjects)
+o <- c1 + c2 + c3 + treatment + t.friends + rnorm(nsubjects)
 
 write.csv(data.frame(c1, c2, c3, t=treatment, o), file="network_attrs.csv", row.names = FALSE)
 write.table(adj.mat, file="network.csv", row.names = FALSE, col.names=FALSE, sep=",")

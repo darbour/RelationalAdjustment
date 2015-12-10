@@ -87,19 +87,20 @@ function GSN(adj_mat, data, treatment, burnin, nsamples, thinning)
 
         # update the treatment vector
         val_changed = loop_data[next_var, :t] != prediction
-        loop_data[next_var, :t] = prediction 
 
-        # grab the indices of neighbors
-        (adj_vals, _, _) = findnz(adj_mat[:, [next_var]])
-
-        # include the current node in the set of aggregates to be updated
-        update_vals = [next_var;adj_vals]
-
-        # udpate covariates
-        update_covariates!(adj_mat, loop_data, treatment, update_vals)
-
-        # update prob cache of neighbors
+        # update prob neighbors only if we changed out value
         if val_changed
+            loop_data[next_var, :t] = prediction 
+
+            # grab the indices of neighbors
+            (adj_vals, _, _) = findnz(adj_mat[:, [next_var]])
+
+            # include the current node in the set of aggregates to be updated
+            update_vals = [next_var;adj_vals]
+
+            # udpate covariates
+            update_covariates!(adj_mat, loop_data, treatment, update_vals)
+
             prob_cache[adj_vals] = predict(psm, loop_data[adj_vals, :])
         end
 
