@@ -9,13 +9,15 @@ ht <- function(exposure, outcome, eprob.fun) {
     subjects <- splits[[cur.exposure]]
     cur.outcomes <- outcome[subjects]
     
+    n.valid.subjects <- sum(aaply(1:length(exposure), 1, function(s) eprob.fun(s, s, cur.exposure) > 0))
+    
     subject.probs <- aaply(subjects, 1, function(s) eprob.fun(s, s, cur.exposure))
-    exposure.outcome[[cur.exposure]] <- 1/length(exposure) * sum(cur.outcomes / subject.probs)
+    exposure.outcome[[cur.exposure]] <- 1/n.valid.subjects * sum(cur.outcomes / subject.probs)
     
     pairwise.probs <- outer(subjects, subjects, Vectorize(function(i, j) eprob.fun(i, j, cur.exposure)))
     corr.comp <- (1 - (subject.probs %*% t(subject.probs) / pairwise.probs)) * ((cur.outcomes / subject.probs) %*% t(cur.outcomes / subject.probs))
     diag(corr.comp) <- 0            
-    exposure.variance[[cur.exposure]] <- 1/(length(exposure)**2) * 
+    exposure.variance[[cur.exposure]] <- 1/(n.valid.subjects**2) * 
         (sum((1 - subject.probs) * (cur.outcomes / subject.probs) ** 2) + sum(corr.comp))
   }
   return(list("mean"=exposure.outcome, "variance"=exposure.variance))

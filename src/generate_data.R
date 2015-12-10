@@ -1,7 +1,7 @@
 library(igraph)
 library(plyr)
 
-nsubjects <- 100
+nsubjects <- 1000
 net <- sample_smallworld(1, nsubjects, 3, 0.1)
 adj.mat <- as.matrix(get.adjacency(net))
 
