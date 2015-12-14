@@ -6,10 +6,11 @@ ht <- function(exposure, outcome, eprob.fun) {
   exposure.outcome <- list()
   exposure.variance <- list()
   for(cur.exposure in names(splits)) {
+    valid.subject <- aaply(1:length(exposure), 1, function(s) eprob.fun(s, s, cur.exposure) > 0)
+    n.valid.subjects <- sum(valid.subject)
     subjects <- splits[[cur.exposure]]
+    subjects <- subjects[subjects %in% (1:length(exposure))[valid.subject]]
     cur.outcomes <- outcome[subjects]
-    
-    n.valid.subjects <- sum(aaply(1:length(exposure), 1, function(s) eprob.fun(s, s, cur.exposure) > 0))
     
     subject.probs <- aaply(subjects, 1, function(s) eprob.fun(s, s, cur.exposure))
     exposure.outcome[[cur.exposure]] <- 1/n.valid.subjects * sum(cur.outcomes / subject.probs)
