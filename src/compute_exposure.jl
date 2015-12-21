@@ -70,6 +70,7 @@ samples = readcsv("samples1000.csv")
 adj_mat = readcsv("network1000.csv")
 data = readtable("network_attrs1000.csv")
 (obs_exposures, exposure_probs) = get_exposures(data[:, :t], samples, adj_mat)
+
 for exposure in 1:20
     probs = exposure_probs[exposure]
     # convert to a tabular format for writing

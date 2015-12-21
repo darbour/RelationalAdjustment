@@ -3,7 +3,8 @@ using DataFrames
 
 function create_aggregate(adj_mat, values, aggregate_function, update_rows)
     vals = zeros(length(update_rows))
-    for (v,i) in enumerate(update_rows)
+    @simd for v in 1:length(update_rows)
+        i = update_rows[v]
         (_, indices, _) = findnz(adj_mat[i,:])
         vals[v] = aggregate_function(values[indices])
     end
@@ -75,8 +76,8 @@ function GSN(adj_mat, data, treatment, burnin, nsamples, thinning)
     prob_cache = predict(psm, loop_data)
     startTime = time()
     for i in 1:(burnin+(nsamples*thinning))
-        if i % 1000 == 0
-            println("Sample $i, $(round(Int, 1000 / (time() - startTime))) samples per second")
+        if i % 10000 == 0
+            println("Sample $i, $(round(Int, 10000 / (time() - startTime))) samples per second")
             startTime = time()
         end
         # choose the next sample at random
