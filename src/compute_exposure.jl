@@ -11,19 +11,24 @@ using DataFrames;
 function prop_exposure(treatment, node, neighbor_indices)
     tfrac = sum(treatment[neighbor_indices]) / size(neighbor_indices, 1)
     exposure_idx = (treatment[node] * 10) + floor(min(tfrac, 0.99) / 0.1)
-    return(exposure_idx+1)
+    return(exposure_idx+1, 20)
 end
 
-function get_exposures(obs_treatment, treatment_samples, adj_mat, exposurefun=prop_exposure, num_exposures=20)
+function exist_exposure(treatment, node, neighbor_indices)
+    return(1 + maximum(treatment[neighbor_indices]) + 2 * treatment[node], 4)
+end
+
+function get_exposures(obs_treatment, treatment_samples, adj_mat, exposurefun=prop_exposure)
 
     nsubjects = size(treatment_samples, 2)
     nsamples = size(treatment_samples, 1)
 
     exposure_mat = zeros(UInt8, nsamples, nsubjects)
     obs_exposures = zeros(Int, nsubjects)
+    _, num_exposures = exposurefun(obs_treatment, 1, findnz(adj_mat[1, :])[2])
     for s in 1:nsubjects
         (_, neighbors, _) = findnz(adj_mat[s, :])
-        obs_exposures[s] = exposurefun(obs_treatment, s, neighbors)
+        obs_exposures[s], _ = exposurefun(obs_treatment, s, neighbors)
     end
 
     # map nodes to exposures
@@ -31,7 +36,7 @@ function get_exposures(obs_treatment, treatment_samples, adj_mat, exposurefun=pr
     for col_idx in 1:nsubjects
         (_, neighbors, _) = findnz(adj_mat[col_idx, :])
         for row_idx in 1:nsamples
-            exposure_idx = exposurefun(treatment_samples[row_idx, :], col_idx, neighbors)
+            exposure_idx, _ = exposurefun(treatment_samples[row_idx, :], col_idx, neighbors)
             exposure_mat[row_idx, col_idx] = exposure_idx
         end
     end
