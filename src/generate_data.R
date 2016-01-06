@@ -21,12 +21,12 @@ generate.data <- function(nsubjects) {
         treatment <- rbinom(nsubjects, 1, prob=t.prob)
     }
 
-    print(summary(glm(t ~ ., data=data.frame(c1, c2, c3, t=treatment, t.friends))))
+    #print(summary(glm(t ~ ., data=data.frame(c1, c2, c3, t=treatment, t.friends))))
 
     o <- c1 + c2 + c3 + treatment + t.friends + rnorm(nsubjects)
 
     #write.csv(data.frame(c1, c2, c3, t=treatment, o), file="network_attrs.csv", row.names = FALSE)
     #write.table(adj.mat, file="network.csv", row.names = FALSE, col.names=FALSE, sep=",")
     df <- data.frame(c1, c2, c3, t=treatment, o)
-    return list(df, adj.mat)
+    return(list(df, adj.mat))
 }
