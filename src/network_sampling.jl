@@ -77,7 +77,7 @@ function GSN(adj_mat, data, treatment, burnin, nsamples, thinning)
     startTime = time()
     for i in 1:(burnin+(nsamples*thinning))
         if i % 10000 == 0
-            println("Sample $i, $(round(Int, 10000 / (time() - startTime))) samples per second")
+            print("\rSample $i, $(round(Int, 10000 / (time() - startTime))) samples per second")
             startTime = time()
         end
         # choose the next sample at random
@@ -112,6 +112,7 @@ function GSN(adj_mat, data, treatment, burnin, nsamples, thinning)
             cur_sample_idx += 1
         end
     end
+    println()
     
     return samples
 end
