@@ -51,7 +51,7 @@ function get_exposures(obs_treatment, treatment_samples, adj_mat, exposurefun=pr
     split_point = ceil(Int, nsubjects / 2.0)
     for sample in 1:nsamples
         if sample % 100 == 0
-            println("Computing joint exposure probs, sample $sample/$nsamples ...")
+            print("\rComputing joint exposure probs, sample $sample/$nsamples ...")
         end
 
         # populate symmetric matrix
@@ -67,6 +67,7 @@ function get_exposures(obs_treatment, treatment_samples, adj_mat, exposurefun=pr
             end
         end
     end
+    println()
 
     return(obs_exposures, exposure_probs)
 end

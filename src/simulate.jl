@@ -8,6 +8,8 @@ include("network_sampling.jl")
 include("ht_estimator.jl")
 include("compute_exposure.jl")
 
+exposurefun = prop_exposure
+
 #println("Running Add Health simulation ...")
 #include("generate_addhealth_data.jl")
 #adj_mat, dat = generate_addhealth_data()
@@ -28,7 +30,8 @@ samples = GSN(adj_mat, dat, "t", burn_in, n_samples, thinning)
 
 
 # calculate the exposure probs
-(obs_exposures, exposure_probs) = get_exposures(dat[:, :t], samples, adj_mat, exist_exposure)
+println("Computing exposures with function $exposurefun")
+(obs_exposures, exposure_probs) = get_exposures(dat[:, :t], samples, adj_mat, exposurefun)
 
 # output data, samples, and exposures probabilities
 mkpath("results")

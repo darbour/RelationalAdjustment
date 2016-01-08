@@ -22,15 +22,16 @@ function generate_data(nsubjects)
 
     burn_in = 100 
     iter = 0 
-    t_friends = zeros(nsubjects)
     while(iter <= burn_in) 
         iter = iter + 1 
-        t_friends = (adj_mat * treatment) ./ degrees
-        t_prob = 1 ./ (1 + exp(-zscore(c1 + c2 + c3 + rand(stdNormal, nsubjects)) - zscore(t_friends)))
+        cur_t_friends = (adj_mat * treatment) ./ degrees
+
+        t_prob = 1 ./ (1 + exp(-zscore(c1 + c2 + c3 + rand(stdNormal, nsubjects)) - zscore(cur_t_friends)))
         for i in 1:size(treatment, 1)
             treatment[i] = rand(Binomial(1, t_prob[i]), 1)[1]
         end 
     end 
+    t_friends = (adj_mat * treatment) ./ degrees
     
     covariates = DataFrame(t = treatment, c1 = c1, c2 = c2, c3 = c3, t_friends=t_friends)
     println(covariates[1:10, :])
@@ -38,6 +39,8 @@ function generate_data(nsubjects)
     println(model)
 
     o = covariates[:c1] + covariates[:c2] + covariates[:c3] + covariates[:t] + covariates[:t_friends] + rand(stdNormal, nsubjects)
+    covariates[:o] = o
+    println(lm(o ~ c1 + c2 + c3 + t_friends + t, covariates))
     dat = DataFrame(t=treatment, c1=c1, c2=c2, c3=c3, o=o)
 
     return (adj_mat, dat)
