@@ -16,7 +16,7 @@ three.net <- function(graph, p=0.5) {
     B.2 <- dists <= 2
     unmarked <- rep(TRUE, N)
     seeds <- c()
-    while(!any(unmarked)) {
+    while(any(unmarked)) {
         # randomly choose from the unmarked nodes
         new.seed <- sample(which(unmarked), 1)
         unmarked[B.2[new.seed, ]] <- FALSE
@@ -24,7 +24,8 @@ three.net <- function(graph, p=0.5) {
     }
     
     # now assign to clusters
-    clusters <- apply(dists, 1, function(row) { seeds[which.min(row[seeds])] }) 
+    seed.idxs <- 1:length(seeds)
+    clusters <- apply(dists, 1, function(row) { seed.idxs[which.min(row[seeds])] }) 
     treatment.assignments <- rbinom(length(unique(clusters)), 1, p)
     return(list(clusters=clusters, treatment.assignments=treatment.assignments))
 }
