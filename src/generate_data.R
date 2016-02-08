@@ -138,4 +138,5 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
     return(list(df, adj.mat))
 }
 
-generate.by.index(5)
+#dat <- read.csv("~/repos/RelationalICausalInference/experiments/all_configurations.csv")
+#generate.by.index(dat, 5)
