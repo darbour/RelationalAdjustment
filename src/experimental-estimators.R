@@ -9,12 +9,12 @@ compute.ugander.exposure.prob <- function(adj.mat, clusters, cluster.treatment.p
     cluster.counts <- matrix(0, nrow(adj.mat), max(clusters))
     for(i in 1:nrow(adj.mat)) {
         row <- adj.mat[i, ]
+        row[i] <- 1
         vals <- (row * clusters)
         for(cluster in unique(vals)[-1]) {
             cluster.counts[i, cluster] <- sum(vals == cluster)
         }
     } 
-    print(cluster.counts[, ncol(cluster.counts)])
     probs <- sapply(1:nrow(adj.mat), function(i)  {
         # exclude your own cluster
         intra.cluster.count <- cluster.counts[i, clusters[i]]
@@ -33,7 +33,6 @@ compute.ugander.exposure.prob <- function(adj.mat, clusters, cluster.treatment.p
 }
 
 compute.prob <- function(s, T, p, w) {
-    print(s)
     if(s == 0) {
         return(1)
     } else if(s == 1) {
