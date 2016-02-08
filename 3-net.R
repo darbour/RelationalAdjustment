@@ -26,6 +26,9 @@ three.net <- function(graph, p=0.5) {
     # now assign to clusters
     seed.idxs <- 1:length(seeds)
     clusters <- apply(dists, 1, function(row) { seed.idxs[which.min(row[seeds])] }) 
+
+    # re-index clusters 1..(num clusters)
+    clusters <- match(clusters, unique(clusters))
     treatment.assignments <- rbinom(length(unique(clusters)), 1, p)
     return(list(clusters=clusters, treatment.assignments=treatment.assignments))
 }

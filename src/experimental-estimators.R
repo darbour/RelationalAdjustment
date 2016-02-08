@@ -20,12 +20,17 @@ compute.ugander.exposure.prob <- function(adj.mat, clusters, cluster.treatment.p
         intra.cluster.count <- cluster.counts[i, clusters[i]]
         ind.cluster.count <- cluster.counts[i,-clusters[i]]
         ind.cluster.count <- ind.cluster.count[which(ind.cluster.count > 0)]
+        #cat("intra cluster count: ", intra.cluster.count, "\n")
+        #print(ind.cluster.count)
+
         # compute the number you'd need
         min.treated <- ceiling(k * sum(adj.mat[i,]))
         if(control) {
             return((1 - cluster.treatment.prob) * (1 - compute.prob(length(ind.cluster.count), sum(adj.mat[i,]) - min.treated + 1, cluster.treatment.prob, ind.cluster.count)))
         } else {
-            return(cluster.treatment.prob * compute.prob(length(ind.cluster.count), min.treated - intra.cluster.count, cluster.treatment.prob, ind.cluster.count))
+            dprob <- compute.prob(length(ind.cluster.count), min.treated - intra.cluster.count, cluster.treatment.prob, ind.cluster.count)
+            #cat("dprob:", dprob, ", ", cluster.treatment.prob, "\n")
+            return(cluster.treatment.prob * dprob)
         }
         return(1)
     } )
