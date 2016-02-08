@@ -4,12 +4,6 @@ ugander.sample.mean <- function(adj.mat, data, clusters, k, exposure=compute.uga
     return((data$y*data$t / probs) / sum(data$t == 1) - (data$y*(1 - data$t) / probs) / sum(data$t == 0))
 }
 
-full.exposure.probability <- function(adj.mat, clusters, cluster.treatment.prob) { 
-    mat <- diag(nrow(adj.mat)) + adj.mat
-    apply(mat, 1, function(row) {
-        cluster.treatment.prob ^ (length(unique(clusters[which(mat)])) 
-    }
-}
 
 compute.ugander.exposure.prob <- function(adj.mat, clusters, cluster.treatment.prob, k, control=FALSE) {
     row.counts <- matrix(0, nrow(adj.mat), clusters)
@@ -20,7 +14,7 @@ compute.ugander.exposure.prob <- function(adj.mat, clusters, cluster.treatment.p
             row.counts[i, cluster] <- sum(vals == cluster)
         }
     } )
-    probs <- sapply(1:nrow(adj.mat), function(i) ) {
+    probs <- sapply(1:nrow(adj.mat), function(i)  {
         # exclude your own cluster
         intra.cluster.count <- cluster.counts[i, clusters[i]]
         ind.cluster.count <- cluster.counts[i,-clusters[i]]
@@ -28,7 +22,7 @@ compute.ugander.exposure.prob <- function(adj.mat, clusters, cluster.treatment.p
         # compute the number you'd need
         min.treated <- ceil(k * sum(adj.mat[i,]))
         if(control) {
-            return((1 - cluster.treatment.prob) * (1 - compute.prob(length(ind.cluster.count), sum(adj.mat[i,]) - min.treated + 1, p, ind.cluster.count))
+            return((1 - cluster.treatment.prob) * (1 - compute.prob(length(ind.cluster.count), sum(adj.mat[i,]) - min.treated + 1, p, ind.cluster.count)))
         } else {
             return(cluster.treatment.prob * compute.prob(length(ind.cluster.count), min.treated - intra.cluster.count, p, ind.cluster.count))
         }
@@ -58,8 +52,8 @@ lam.II <- function(adj.mat, data) {
     reg.df <- data
     # fraction of treated friends
     reg.df$frac.treated <- (adj.mat %*% data$t) / degrees
-    regression.t <- lm(o ~ frac.treated, data=reg.df[which(reg.df$t == 1,])
-    regression.c <- lm(o ~ frac.treated, data=reg.df[which(reg.df$t == 0,])
+    regression.t <- lm(o ~ frac.treated, data=reg.df[which(reg.df$t == 1),])
+    regression.c <- lm(o ~ frac.treated, data=reg.df[which(reg.df$t == 0),])
     return(regression.t$coefficients[1] + regression.t$coefficients[2] - regression.c$coefficients[1])
 }
 
