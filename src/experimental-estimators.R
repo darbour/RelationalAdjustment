@@ -6,32 +6,37 @@ ugander.sample.mean <- function(adj.mat, data, clusters, k, exposure=compute.uga
 
 
 compute.ugander.exposure.prob <- function(adj.mat, clusters, cluster.treatment.prob, k, control=FALSE) {
-    row.counts <- matrix(0, nrow(adj.mat), clusters)
-    cluster.counts <- apply(1:nrow(adj.mat), 1, function(i) {
+    cluster.counts <- matrix(0, nrow(adj.mat), max(clusters))
+    for(i in 1:nrow(adj.mat)) {
         row <- adj.mat[i, ]
         vals <- (row * clusters)
         for(cluster in unique(vals)[-1]) {
-            row.counts[i, cluster] <- sum(vals == cluster)
+            cluster.counts[i, cluster] <- sum(vals == cluster)
         }
-    } )
+    } 
     probs <- sapply(1:nrow(adj.mat), function(i)  {
         # exclude your own cluster
         intra.cluster.count <- cluster.counts[i, clusters[i]]
         ind.cluster.count <- cluster.counts[i,-clusters[i]]
         ind.cluster.count <- ind.cluster.count[which(ind.cluster.count > 0)]
         # compute the number you'd need
-        min.treated <- ceil(k * sum(adj.mat[i,]))
+        min.treated <- k #ceiling(k * sum(adj.mat[i,]))
         if(control) {
             return((1 - cluster.treatment.prob) * (1 - compute.prob(length(ind.cluster.count), sum(adj.mat[i,]) - min.treated + 1, p, ind.cluster.count)))
         } else {
+            print(paste("Min treated", min.treated, "count", intra.cluster.count))
             return(cluster.treatment.prob * compute.prob(length(ind.cluster.count), min.treated - intra.cluster.count, p, ind.cluster.count))
         }
+        return(1)
     } )
     return(probs)
 }
 
 compute.prob <- function(s, T, p, w) {
-    if(s == 1) {
+    print(s)
+    if(s == 0) {
+        stop("what the heck")
+    } else if(s == 1) {
         return(p * (T < w[s]))
     } else {
         return(p * compute.prob(s-1, T - w[s], p, w) +  (1 - p) * compute.prob(s-1, T, p, w))
