@@ -14,18 +14,18 @@ compute.ugander.exposure.prob <- function(adj.mat, clusters, cluster.treatment.p
             cluster.counts[i, cluster] <- sum(vals == cluster)
         }
     } 
+    print(cluster.counts[, ncol(cluster.counts)])
     probs <- sapply(1:nrow(adj.mat), function(i)  {
         # exclude your own cluster
         intra.cluster.count <- cluster.counts[i, clusters[i]]
         ind.cluster.count <- cluster.counts[i,-clusters[i]]
         ind.cluster.count <- ind.cluster.count[which(ind.cluster.count > 0)]
         # compute the number you'd need
-        min.treated <- k #ceiling(k * sum(adj.mat[i,]))
+        min.treated <- ceiling(k * sum(adj.mat[i,]))
         if(control) {
-            return((1 - cluster.treatment.prob) * (1 - compute.prob(length(ind.cluster.count), sum(adj.mat[i,]) - min.treated + 1, p, ind.cluster.count)))
+            return((1 - cluster.treatment.prob) * (1 - compute.prob(length(ind.cluster.count), sum(adj.mat[i,]) - min.treated + 1, cluster.treatment.prob, ind.cluster.count)))
         } else {
-            print(paste("Min treated", min.treated, "count", intra.cluster.count))
-            return(cluster.treatment.prob * compute.prob(length(ind.cluster.count), min.treated - intra.cluster.count, p, ind.cluster.count))
+            return(cluster.treatment.prob * compute.prob(length(ind.cluster.count), min.treated - intra.cluster.count, cluster.treatment.prob, ind.cluster.count))
         }
         return(1)
     } )
@@ -35,7 +35,7 @@ compute.ugander.exposure.prob <- function(adj.mat, clusters, cluster.treatment.p
 compute.prob <- function(s, T, p, w) {
     print(s)
     if(s == 0) {
-        stop("what the heck")
+        return(1)
     } else if(s == 1) {
         return(p * (T < w[s]))
     } else {
