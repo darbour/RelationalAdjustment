@@ -1,6 +1,5 @@
 library(igraph)
 library(plyr)
-library(jsonlite)
 
 # This function creates a collection of run configurations in a specified directory
 create.configurations <- function(base.dir) {
@@ -29,34 +28,22 @@ create.configurations <- function(base.dir) {
   write.csv(all.settings, file.path(base.dir, "all_configurations.csv"))
 }
 
-# Execute one configuration, identified by its row number in the 'all_configurations.csv' file
-main <- function() {
-  args <- commandArgs(trailingOnly=TRUE)
-  if(length(args) < 1) {
-    stop("Usage: generate_data.R <configuration file> [<configuration index>]")
-  }
-  config.path <- args[1]
-  all.configs <- read.csv(config.path)
-  if(length(args) > 1) {
-    configs.to.run <- c(as.numeric(args[2]))
-  } else {
-    configs.to.run <- 1:nrow(all.configs)
-  }
-  
-  for(config.to.run in configs.to.run) {
-    config <- all.configs[config.to.run, ]
-    generate.data(nsubjects=config$size, random.seed=config$random.seed, 
-                  graph.type=config$graph.type, 
-                  graph.parameters=list(degree=config$degree, p=config$p, power=config$power), 
-                  exposure.type=config$exposure.type, 
-                  confounding.coeff=config$confounding.coeff,
-                  treatment.autocorr.coeff=config$treatment.autocorr.coeff,
-                  of.beta=config$of.beta,
-                  ot.beta=config$ot.beta,
-                  t.binary=TRUE,
-                  result.dir=".",
-                  basename=config.to.run)
-  }
+# Generates data corresponding to a row in the configuration file
+#   config.data -- A data frame like that output by 'create.configurations'
+#   idx -- An integer row number corresponding to the instance of 'config.data' to run
+generate.by.index <- function(config.data, idx) {
+  config <- config.data[idx, ]
+  generate.data(nsubjects=config$size, random.seed=config$random.seed, 
+                graph.type=config$graph.type, 
+                graph.parameters=list(degree=config$degree, p=config$p, power=config$power), 
+                exposure.type=config$exposure.type, 
+                confounding.coeff=config$confounding.coeff,
+                treatment.autocorr.coeff=config$treatment.autocorr.coeff,
+                of.beta=config$of.beta,
+                ot.beta=config$ot.beta,
+                t.binary=TRUE,
+                result.dir=".",
+                basename=idx)
 }
 
 # Generates data.
@@ -151,6 +138,4 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
     return(list(df, adj.mat))
 }
 
-commandArgs <- function(trailingOnly=TRUE) { return(c("~/repos/RelationalICausalInference/experiments/all_configurations.csv")) }
-main()
-#create.configurations("~/repos/RelationalICausalInference/experiments/")
+generate.by.index(5)
