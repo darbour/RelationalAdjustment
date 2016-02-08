@@ -26,6 +26,6 @@ three.net <- function(graph, p=0.5) {
     # now assign to clusters
     clusters <- apply(dists, 1, function(row) { seeds[which.min(row[seeds])] }) 
     treatment.assignments <- rbinom(length(unique(clusters)), 1, p)
-    return(list(clusters=clusters, treatment.assignmets=treatment.assignments))
+    return(list(clusters=clusters, treatment.assignments=treatment.assignments))
 }
 
