@@ -166,8 +166,8 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
     }
     
     df <- data.frame(c1, c2, t=treatment, o)
-    write.csv(df, file.path(result.dir, paste0("data", basename, ".csv")))
-    write.csv(adj.mat, file.path(result.dir, paste0("network", basename, ".csv")))
+    #write.csv(df, file.path(result.dir, paste0("data", basename, ".csv")))
+    #write.csv(adj.mat, file.path(result.dir, paste0("network", basename, ".csv")))
     return(list(data=df, adj.mat=adj.mat, outcome.function=po.fun, clusters=clusters))
 }
 

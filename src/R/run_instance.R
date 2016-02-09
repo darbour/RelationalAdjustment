@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-commandArgs <- function(trailingOnly=TRUE) { return(c(10, "~/repos/RelationalICausalInference/experiments/all_configurations.csv", "temp.csv"))} 
+#commandArgs <- function(trailingOnly=TRUE) { return(c(10, "~/repos/RelationalICausalInference/experiments/all_configurations.csv", "temp.csv"))} 
 
 source("3-net.R")
 source("experimental-estimators.R")
@@ -29,7 +29,10 @@ for(trial in 1:50) {
   gp.model <- gp.estimate(gendata$adj.mat, gendata$data)
   lm.model <- lam.I(gendata$adj.mat, gendata$data)
   lm.modelII <- lam.II(gendata$adj.mat, gendata$data)
-  htmeans <- ugander.horvitz.thompson(gendata$adj.mat, gendata$data, gendata$clusters, 0.75)
+  if(config$graph.cluster.randomization) {
+    htmeans <- ugander.horvitz.thompson(gendata$adj.mat, gendata$data, gendata$clusters, 0.75)
+    htmeans <- list(tmean=NA, cmean=NA)
+  }
   
   estimates <- data.frame(method=c("Actual", "GP", "LM-IND", "LM-INT", "HT"), config=config_id, trial=trial)
   
@@ -53,7 +56,7 @@ for(trial in 1:50) {
   # synchronize access to the results file
   system(paste0("lockfile results.lock"))
   append <- FALSE
-  if(file.exists(output_file) && file.size(output_file) > 0) {
+  if(file.exists(output_file) && file.info(output_file)$size > 0) {
     append <- TRUE
   }
   write.table(estimates, output_file, append=append, col.names=!append, row.names=FALSE, sep=",")
