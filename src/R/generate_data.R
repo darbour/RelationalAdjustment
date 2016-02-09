@@ -1,20 +1,22 @@
 library(igraph)
 library(plyr)
 
+source("3-net.R")
+
 # This function creates a collection of run configurations in a specified directory
 create.configurations <- function(base.dir) {
   #sizes <- c(100, 400, 900)
   sizes <- c(1024)
-  graph.settings <- expand.grid(graph.type=c("small-world"), degree=10, p=c(0.3, 0.5, 0.7), power=NA, size=sizes)
+  graph.settings <- expand.grid(graph.type=c("small-world"), degree=5, p=c(0.0, 0.01, 0.10, 0.50, 1.00), power=NA, size=sizes)
   #graph.settings <- rbind(graph.settings, expand.grid(graph.type=c("erdos-renyi"), p=c(0.05, 0.1, 0.2), degree=NA, power=NA, size=sizes))
   graph.settings <- rbind(graph.settings, expand.grid(graph.type=c("barabasi-albert"), power=c(0.1, 0.5, 1), degree=NA, p=NA, size=sizes))
   
   experimental.function.settings <- expand.grid(exposure.type=c("linear", "sigmoid", "exponential", "rbf-friends"), 
                                    of.beta=c(0, 0.5, 1, 1.5), ot.beta=c(0, 0.5, 1, 1.5), 
-                                   confounding.coeff=c(0), treatment.autocorr.coeff=c(0, 10))
+                                   confounding.coeff=c(0), treatment.autocorr.coeff=0, graph.cluster.randomization=TRUE)
   observational.function.settings <- expand.grid(exposure.type=c("linear", "sigmoid", "exponential", "rbf-friends"), 
                                                 of.beta=c(1), ot.beta=c(1), 
-                                                confounding.coeff=c(0, 1, 2, 3), treatment.autocorr.coeff=c(0, 10))
+                                                confounding.coeff=c(0, 1, 2, 3), treatment.autocorr.coeff=c(0, 10), graph.cluster.randomization=FALSE)
   function.settings <- rbind(experimental.function.settings, observational.function.settings)
   # exaggerate effects for some classes of models
   multipliers <- list("sigmoid"=10, "exponential"=10)
@@ -31,7 +33,7 @@ create.configurations <- function(base.dir) {
 # Generates data corresponding to a row in the configuration file
 #   config.data -- A data frame like that output by 'create.configurations'
 #   idx -- An integer row number corresponding to the instance of 'config.data' to run
-generate.by.index <- function(config.data, idx) {
+generate.by.index <- function(config.data, idx, verbose=FALSE, ...) {
   config <- config.data[idx, ]
   generate.data(nsubjects=config$size, random.seed=config$random.seed, 
                 graph.type=config$graph.type, 
@@ -42,8 +44,9 @@ generate.by.index <- function(config.data, idx) {
                 of.beta=config$of.beta,
                 ot.beta=config$ot.beta,
                 t.binary=TRUE,
+                graph.cluster.randomization=config$graph.cluster.randomization,
                 result.dir=".",
-                basename=idx)
+                basename=idx, ...)
 }
 
 # Generates data.
@@ -60,14 +63,16 @@ generate.by.index <- function(config.data, idx) {
 #                       rbf-friends -- Outcome is linear in treatment and confounders, but is related to fp via a radial basis function
 #                       sigmoid -- Outcome is related to a linear combination of treatment, fp, and confounders through a logistic link
 #                       exponential -- Outcome is related to a linear combination of treatment, fp, and confounders through an exponential link
+#   graph.cluster.randomization -- Indicates whether treatment will be assigned experimentally with graph cluster randomization, or observed passively.
 generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, exposure.type, confounding.coeff, 
-                          treatment.autocorr.coeff, of.beta, ot.beta, t.binary, result.dir, basename) {
+                          treatment.autocorr.coeff, of.beta, ot.beta, t.binary, graph.cluster.randomization, 
+                          result.dir, basename, noise.sd=1, verbose=FALSE) {
     set.seed(random.seed)
     if(graph.type == "small-world") {
       if(floor(sqrt(nsubjects))**2 != nsubjects) {
         stop(paste("Expected the number of subjects to be perfect square for small world network generation. Got ", nsubjects, ", floor(sqrt(nsubjects))**2: ", floor(sqrt(nsubjects))**2, "."))
       }
-      net <- simplify(watts.strogatz.game(2, floor(sqrt(nsubjects)), graph.parameters$degree, graph.parameters$p))
+      net <- simplify(watts.strogatz.game(1, nsubjects, graph.parameters$degree, graph.parameters$p))
     } else if(graph.type == "erdos-renyi") {
       net <- erdos.renyi.game(nsubjects, graph.parameters$p)
     } else if(graph.type == "barabasi-albert") {
@@ -77,7 +82,6 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
     }
     
     adj.mat <- as.matrix(get.adjacency(net))
-    print(max(adj.mat)) 
     c1 <- rnorm(nsubjects)
     c2 <- rnorm(nsubjects)
     c1fmean <- (adj.mat %*% c1) / rowSums(adj.mat) + rnorm(nsubjects)
@@ -87,20 +91,32 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
     confounding.terms <- cbind(c1, c2, c1fmean, c2fmean, c1fvariance, c2fvariance, c1fmean * c1fvariance, c2fmean * c2fvariance)
     confounding.beta <- runif(ncol(confounding.terms))
     confounding.term <- scale(confounding.terms %*% confounding.beta)
-    plot(density(confounding.term))
+    if(verbose) {
+      plot(density(confounding.term))
+    }
     
-    # possibly generate autocorrelated treatments
-    scale.friend.prop <- 0
-    for(i in 1:3) { #three Gibbs steps
-      if(t.binary) {
-        t.prob <- 1 / (1 + exp(-(confounding.coeff * confounding.term  + treatment.autocorr.coeff * scale.friend.prop) + rnorm(nsubjects)))
-        treatment <- rbinom(nsubjects, 1, prob=t.prob)      
-      } else {
-        treatment <- confounding.coeff * confounding.term + rnorm(nsubjects) +  treatment.autocorr.coeff * scale.friend.prop
-      }      
+    if(graph.cluster.randomization) {
+      clustering <- three.net(net)
+      clusters <- clustering$clusters
+      treatment <- clustering$treatment.assignments[clustering$clusters]
       t.friends <- adj.mat %*% treatment
       friend.prop <- t.friends / rowSums(adj.mat)      
-      scale.friend.prop <- scale(friend.prop)
+    } else {
+      clusters <- NULL
+      
+      # possibly generate autocorrelated treatments
+      scale.friend.prop <- 0
+      for(i in 1:3) { #three Gibbs steps
+        if(t.binary) {
+          t.prob <- 1 / (1 + exp(-(confounding.coeff * confounding.term  + treatment.autocorr.coeff * scale.friend.prop) + rnorm(nsubjects)))
+          treatment <- rbinom(nsubjects, 1, prob=t.prob)      
+        } else {
+          treatment <- confounding.coeff * confounding.term + rnorm(nsubjects) +  treatment.autocorr.coeff * scale.friend.prop
+        }      
+        t.friends <- adj.mat %*% treatment
+        friend.prop <- t.friends / rowSums(adj.mat)      
+        scale.friend.prop <- scale(friend.prop)
+      }      
     }
     
     if(exposure.type == "linear") {
@@ -122,21 +138,34 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
     } else {
       stop(paste0("Unrecognized exposure model", exposure.type))
     }
-    o <- ofun(treatment, friend.prop)
-    plot(friend.prop, o)
+    o <- ofun(treatment, friend.prop, sdnoise=noise.sd)
     
-    actual.dose.response <- data.frame()
-    for(hypothetical.friend.prop in seq(0, 1, length.out=200)) {
-      potential.o <- mean(ofun(treatment, hypothetical.friend.prop, sdnoise=0))
-      actual.dose.response <- rbind(actual.dose.response, data.frame(hypothetical.friend.prop, potential.o))
+    # a function for mean potential outcome
+    po.fun <- function(myt=NULL, friendt=NULL, sdnoise=0) {
+      if(is.null(myt)) {
+        myt <- treatment
+      }
+      if(is.null(friendt)) {
+        friendt <- friend.prop
+      }
+      return(mean(ofun(myt, friendt, sdnoise=sdnoise)))
     }
-    with(actual.dose.response, plot(hypothetical.friend.prop, potential.o, type="l"))
     
-    df <- data.frame(c1, c2, t=treatment, o, t.prob=t.prob)
+    if(verbose) {
+      plot(friend.prop, o)
+      
+      actual.dose.response <- data.frame()
+      for(hypothetical.friend.prop in seq(0, 1, length.out=200)) {
+        potential.o <- mean(po.fun(friendt=hypothetical.friend.prop, sdnoise=0))
+        actual.dose.response <- rbind(actual.dose.response, data.frame(hypothetical.friend.prop, potential.o))
+      }
+      with(actual.dose.response, plot(hypothetical.friend.prop, potential.o, type="l"))
+    }
+    
+    df <- data.frame(c1, c2, t=treatment, o)
     write.csv(df, file.path(result.dir, paste0("data", basename, ".csv")))
     write.csv(adj.mat, file.path(result.dir, paste0("network", basename, ".csv")))
-    return(list(df, adj.mat, outcome.function=ofun))
+    return(list(data=df, adj.mat=adj.mat, outcome.function=po.fun, clusters=clusters))
 }
 
-#dat <- read.csv("~/repos/RelationalICausalInference/experiments/all_configurations.csv")
-#generate.by.index(dat, 5)
+#create.configurations("~/repos/RelationalICausalInference/experiments/")
