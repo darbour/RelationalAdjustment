@@ -95,7 +95,7 @@ lam.II <- function(adj.mat, data) {
     degrees <- apply(adj.mat, 1, sum)
     reg.df <- data
     # fraction of treated friends
-    reg.df$frac.treated <- (adj.mat %*% data$t) / degrees
+    reg.df$frac.treated <- as.numeric((adj.mat %*% data$t) / degrees)
     
     regmodel <- lm(o ~ t:frac.treated, data=reg.df)
 
