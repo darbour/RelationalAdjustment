@@ -1,7 +1,7 @@
 ugander.sample.mean <- function(adj.mat, data, clusters, k, exposure=compute.ugander.exposure.prob, treatment.prob=0.5) {
-    treat.probs <- exposure(adj.mat, clusters, k)
-    control.probs <- exposure(adj.mat, clusters, k, control=TRUE)
-    return((data$y*data$t / probs) / sum(data$t == 1) - (data$y*(1 - data$t) / probs) / sum(data$t == 0))
+    treat.probs <- exposure(adj.mat, clusters, treatment.prob, k)
+    control.probs <- exposure(adj.mat, clusters, treatment.prob, k, control=TRUE)
+    return( 1/nrow(data) * ((data$y*data$t / treat.probs) - (data$y*(1 - data$t) / control.probs)))
 }
 
 
