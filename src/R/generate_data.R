@@ -33,9 +33,12 @@ create.configurations <- function(base.dir) {
 # Generates data corresponding to a row in the configuration file
 #   config.data -- A data frame like that output by 'create.configurations'
 #   idx -- An integer row number corresponding to the instance of 'config.data' to run
-generate.by.index <- function(config.data, idx, verbose=FALSE, ...) {
+generate.by.index <- function(config.data, idx, random.seed=NULL, verbose=FALSE, ...) {
+  if(is.null(random.seed)) {
+    random.seed <- idx
+  }
   config <- config.data[idx, ]
-  generate.data(nsubjects=config$size, random.seed=config$random.seed, 
+  generate.data(nsubjects=config$size, random.seed=random.seed, 
                 graph.type=config$graph.type, 
                 graph.parameters=list(degree=config$degree, p=config$p, power=config$power), 
                 exposure.type=config$exposure.type, 
