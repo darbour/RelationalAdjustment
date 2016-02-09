@@ -67,17 +67,17 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
       if(floor(sqrt(nsubjects))**2 != nsubjects) {
         stop(paste("Expected the number of subjects to be perfect square for small world network generation. Got ", nsubjects, ", floor(sqrt(nsubjects))**2: ", floor(sqrt(nsubjects))**2, "."))
       }
-      net <- sample_smallworld(2, floor(sqrt(nsubjects)), graph.parameters$degree, graph.parameters$p)
+      net <- simplify(watts.strogatz.game(2, floor(sqrt(nsubjects)), graph.parameters$degree, graph.parameters$p))
     } else if(graph.type == "erdos-renyi") {
-      net <- sample_gnp(nsubjects, graph.parameters$p)
+      net <- erdos.renyi.game(nsubjects, graph.parameters$p)
     } else if(graph.type == "barabasi-albert") {
-      net <- sample_pa(nsubjects, power=graph.parameters$power)
+      net <- barabasi.game(nsubjects, power=graph.parameters$power)
     } else {
       stop(paste0("Unknown graph type", graph.type))
     }
     
     adj.mat <- as.matrix(get.adjacency(net))
-    
+    print(max(adj.mat)) 
     c1 <- rnorm(nsubjects)
     c2 <- rnorm(nsubjects)
     c1fmean <- (adj.mat %*% c1) / rowSums(adj.mat) + rnorm(nsubjects)
@@ -132,7 +132,7 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
     }
     with(actual.dose.response, plot(hypothetical.friend.prop, potential.o, type="l"))
     
-    df <- data.frame(c1, c2, t=treatment, o)
+    df <- data.frame(c1, c2, t=treatment, o, t.prob=t.prob)
     write.csv(df, file.path(result.dir, paste0("data", basename, ".csv")))
     write.csv(adj.mat, file.path(result.dir, paste0("network", basename, ".csv")))
     return(list(df, adj.mat, outcome.function=ofun))

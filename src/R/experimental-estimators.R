@@ -68,11 +68,11 @@ lam.II <- function(adj.mat, data) {
 
 gp.estimate <- function(adj.mat, data) {
     require(kernlab)
-    degrees <- apply(adj.mat, 1, ,sum)
+    degrees <- apply(adj.mat, 1 ,sum)
     reg.df <- data
     reg.df$frac.treated <- (adj.mat %*% data$t) / degrees
-    gp <- gausspr(o ~ ., data=reg.df)
-    treatment.vals <- predict(gp, data.frame(t=1, frac.treated=1))
-    control.vals <- predict(gp, data.frame(t=0, frac.treated=0))
+    gp <- gausspr(o ~ t + frac.treated, data=reg.df)
+    treatment.vals <- predict(gp)[which(data$t == 1)]
+    control.vals <- predict(gp)[which(data$t == 0)]
     return(mean(treatment.vals) - mean(control.vals))
 }
