@@ -112,6 +112,29 @@ lam.II <- function(adj.mat, data) {
     return(mean.po)
 }
 
+gbm.estimate <- function(adj.mat, data) {
+    require(gbm)
+    degrees <- apply(adj.mat, 1 ,sum)
+    reg.df <- data
+    reg.df$frac.treated <- (adj.mat %*% data$t) / degrees
+    model <- gbm(o ~ t + frac.treated, data=reg.df, cv.folds=10, n.trees=2000)
+    opt.iter <- gbm.perf(model, plot.it=FALSE)
+    model <- gbm(o ~ t + frac.treated, data=reg.df, cv.folds=10, n.trees=opt.iter)
+
+    hyp.dat <- data.frame(reg.df)
+    mean.po <- function(myt=NULL, friendt=NULL) {
+        if(!is.null(myt)) {
+            hyp.dat$t <- myt
+        }
+        if(!is.null(friendt)) {
+            hyp.dat$frac.treated <- friendt
+        }
+        return(mean(predict(model, newdata=hyp.dat, n.trees=opt.iter)))
+    }
+    
+    return(mean.po)
+}
+
 gp.estimate <- function(adj.mat, data) {
     require(kernlab)
     degrees <- apply(adj.mat, 1 ,sum)
