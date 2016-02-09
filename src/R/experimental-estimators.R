@@ -52,8 +52,19 @@ lam.I <- function(adj.mat, data) {
     reg.df <- data
     # fraction of treated friends
     reg.df$frac.treated <- (adj.mat %*% data$t) / degrees
-    regression <- lm(o ~ t + frac.treated, data=reg.df)
-    return(sum(regression$coefficients[-1]))
+    reg.model <- lm(o ~ t + frac.treated, data=reg.df)
+
+    hyp.dat <- data.frame(reg.df)
+    mean.po <- function(myt=NULL, friendt=NULL) {
+        if(!is.null(myt)) {
+            hyp.dat$t <- myt
+        }
+        if(!is.null(friendt)) {
+            hyp.dat$frac.treated <- friendt
+        }
+        return(mean(predict(reg.model, newdata=hyp.dat)))
+    }
+    return(mean.po)
 }
 
 lam.II <- function(adj.mat, data) {
@@ -61,18 +72,39 @@ lam.II <- function(adj.mat, data) {
     reg.df <- data
     # fraction of treated friends
     reg.df$frac.treated <- (adj.mat %*% data$t) / degrees
-    regression.t <- lm(o ~ frac.treated, data=reg.df[which(reg.df$t == 1),])
-    regression.c <- lm(o ~ frac.treated, data=reg.df[which(reg.df$t == 0),])
-    return(regression.t$coefficients[1] + regression.t$coefficients[2] - regression.c$coefficients[1])
+    
+    regmodel <- lm(o ~ frac.treated, data=reg.df)
+
+    hyp.dat <- data.frame(reg.df)
+    mean.po <- function(myt=NULL, friendt=NULL) {
+        if(!is.null(myt)) {
+            hyp.dat$t <- myt
+        }
+        if(!is.null(friendt)) {
+            hyp.dat$frac.treated <- friendt
+        }
+        return(mean(predict(regmodel, newdata=hyp.dat)))
+    }
+    return(mean.po)
 }
 
-gp.estimate <- function(adj.mat, data) {
+gp.estimate <- function(adj.mat, data, sigma=0.5) {
     require(kernlab)
     degrees <- apply(adj.mat, 1 ,sum)
     reg.df <- data
     reg.df$frac.treated <- (adj.mat %*% data$t) / degrees
-    gp <- gausspr(o ~ t + frac.treated, data=reg.df)
-    treatment.vals <- predict(gp)[which(data$t == 1)]
-    control.vals <- predict(gp)[which(data$t == 0)]
-    return(mean(treatment.vals) - mean(control.vals))
+    gp <- gausspr(o ~ t + frac.treated, data=reg.df, kpar=list(sigma=sigma))
+
+    hyp.dat <- data.frame(reg.df)
+    mean.po <- function(myt=NULL, friendt=NULL) {
+        if(!is.null(myt)) {
+            hyp.dat$t <- myt
+        }
+        if(!is.null(friendt)) {
+            hyp.dat$frac.treated <- friendt
+        }
+        return(mean(predict(gp, newdata=hyp.dat)))
+    }
+    
+    return(mean.po)
 }
