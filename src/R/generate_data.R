@@ -79,7 +79,7 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
     } else if(graph.type == "erdos-renyi") {
       net <- erdos.renyi.game(nsubjects, graph.parameters$p)
     } else if(graph.type == "barabasi-albert") {
-      net <- barabasi.game(nsubjects, power=graph.parameters$power)
+      net <- barabasi.game(nsubjects, power=graph.parameters$power, directed=FALSE)
     } else {
       stop(paste0("Unknown graph type", graph.type))
     }
@@ -87,8 +87,9 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
     adj.mat <- as.matrix(get.adjacency(net))
     c1 <- rnorm(nsubjects)
     c2 <- rnorm(nsubjects)
-    c1fmean <- (adj.mat %*% c1) / rowSums(adj.mat) + rnorm(nsubjects)
-    c2fmean <- (adj.mat %*% c2) / rowSums(adj.mat) + rnorm(nsubjects)
+    degrees <- rowSums(adj.mat)
+    c1fmean <- (adj.mat %*% c1) / degrees + rnorm(nsubjects)
+    c2fmean <- (adj.mat %*% c2) / degrees + rnorm(nsubjects)
     c1fvariance <- aaply(1:nsubjects, 1, function(i) var(c1[as.logical(adj.mat[1, ])]))
     c2fvariance <- aaply(1:nsubjects, 1, function(i) var(c2[as.logical(adj.mat[1, ])]))
     confounding.terms <- cbind(c1, c2, c1fmean, c2fmean, c1fvariance, c2fvariance, c1fmean * c1fvariance, c2fmean * c2fvariance)
