@@ -19,14 +19,16 @@ exp.mean <- function(x, sigma=1.0) {
 }
 
 fit.gp <- function(X, y, kernel=rbfdot(), add.kernels=list(), var=1.0) {
-    K <- kernelMatrix(kernel, X)
+    total.features <- ncol(X) + length(add.kernels)
+    K <- (ncol(X) / total.features) * kernelMatrix(kernel, X)
     if(length(add.kernels) > 0) {   
         # uniform combination for now, we can get fancier later
         for(i in 1:length(add.kernels)) {
-            K <- K + add.kernels[[i]]
+            K <- K + (1 / total.features) * add.kernels[[i]]
         }
     }
-    my.alpha <- solve(K + diag(rep(var, length = m))) %*% y
+    K <- (K / 1 + length(add.kernels))
+    my.alpha <- solve(K + diag(rep(var, length = ncol(K)))) %*% y
     return(list(alpha=my.alpha, K=K, X=X, add.kernels=add.kernels))
 }
 
@@ -48,6 +50,6 @@ fit.relational.gp <- function(X, y, kernel=rbfdot(), relational.features=list(),
             relational.kernels[[i]] <- exp.mean(relational.features[[i]])
         }
     }
-    gp <- fit.gp(X, y, kernel=kernel, add.kernels=relational.kernels(), var=1.0)
+    gp <- fit.gp(X, y, kernel=kernel, add.kernels=relational.kernels, var=var)
     return(gp) 
 }
