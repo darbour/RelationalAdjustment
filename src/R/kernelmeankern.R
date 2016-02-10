@@ -18,7 +18,7 @@ exp.mean <- function(x, sigma=1.0) {
     return(exp(-kernel.mat / (2*sigma)))
 }
 
-fit.gp <- function(X, y, kernel=rbfdot(), add.kernels=list()) {
+fit.gp <- function(X, y, kernel=rbfdot(), add.kernels=list(), var=1.0) {
     K <- kernelMatrix(kernel, X)
     if(length(add.kernels) > 0) {   
         # uniform combination for now, we can get fancier later
@@ -40,7 +40,7 @@ predict.gp <- function(gp, new.X, kernel=rbfdot()) {
     return(K %*% gp$alpha)
 }
 
-fit.relational.gp <- function(X, y, kernel=rbfdot(), relational.features=list()) {
+fit.relational.gp <- function(X, y, kernel=rbfdot(), relational.features=list(), var=1.0) {
     # learn the relational kernels first
     relational.kernels <- list()
     if(length(relational.features) > 0) {
@@ -48,6 +48,6 @@ fit.relational.gp <- function(X, y, kernel=rbfdot(), relational.features=list())
             relational.kernels[[i]] <- exp.mean(relational.features[[i]])
         }
     }
-    gp <- predict.gp(X, y, kernel=kernel, add.kernels=relationa.kernels())
+    gp <- fit.gp(X, y, kernel=kernel, add.kernels=relational.kernels(), var=1.0)
     return(gp) 
 }
