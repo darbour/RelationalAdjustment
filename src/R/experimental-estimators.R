@@ -135,22 +135,32 @@ gbm.estimate <- function(adj.mat, data) {
     return(mean.po)
 }
 
-gp.estimate <- function(adj.mat, data) {
+gp.estimate <- function(adj.mat, data,var=1, sigma=NULL) {
     require(kernlab)
+    source('kernelmeankern.R') 
     degrees <- apply(adj.mat, 1 ,sum)
-    reg.df <- data
-    reg.df$frac.treated <- (adj.mat %*% data$t) / degrees
-    gp <- gausspr(o ~ t + frac.treated, data=reg.df)
+    relational.vars <- lapply(1:nrow(adj.mat), function(id) data$t[which(adj.mat[id,] == 1)])
+    gp <- fit.relational.gp(matrix(data$t), matrix(data$o), relational.features=relational.vars)
+    #reg.df <- data
+    #reg.df$frac.treated <- as.vector((adj.mat %*% data$t) / degrees)
+    #reg.df$t[which(reg.df$t == 0)] <- -1
+    #if(is.null(sigma)) {
+    #    gp <- gausspr(o ~ t + frac.treated, data=reg.df,var=var, kernel="laplacedot")
+    #} else {
+    #    gp <- gausspr(o ~ t + frac.treated, data=reg.df,var=var, kpar=list(sigma=sigma))
+    #}
 
-    hyp.dat <- data.frame(reg.df)
+    hyp.dat <- data.frame(data)
     mean.po <- function(myt=NULL, friendt=NULL) {
         if(!is.null(myt)) {
             hyp.dat$t <- myt
         }
         if(!is.null(friendt)) {
-            hyp.dat$frac.treated <- friendt
+            relational.features <- lapply(1:nrow(adj.mat), function(row) data$t[which(adj.mat[row,] == 1)])
+            return(predict.prop.treatment.gp(gp, hyp.dat,  relational.features, friendt))
+        } else {
+            return(mean(predict(gp, hyp.dat)))
         }
-        return(mean(predict(gp, newdata=hyp.dat)))
     }
     
     return(mean.po)
