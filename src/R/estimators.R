@@ -157,7 +157,7 @@ obs.gbm.sufficient <- function(adj.mat, data) {
     model <- gbm(o ~ t + frac.treated + mean.fc1 + mean.fc2 + var.fc1 + var.fc1, data=reg.df, cv.folds=10, n.trees=2000, distribution="gaussian")
     opt.iter <- gbm.perf(model, plot.it=FALSE)
 
-    model <- gbm(o ~ t + frac.treated + mean.fc1 + mean.fc2 + var.fc1 + var.fc1, data=reg.df, cv.folds=10, n.trees=2000, distribution="gaussian")
+    model <- gbm(o ~ t + frac.treated + mean.fc1 + mean.fc2 + var.fc1 + var.fc1, data=reg.df, n.trees=opt.iter, distribution="gaussian")
     return(get.po.func(model, reg.df, n.trees=opt.iter))
 }
 
@@ -169,8 +169,7 @@ gbm.estimate <- function(adj.mat, data) {
 
     model <- gbm(o ~ t + frac.treated, data=reg.df, cv.folds=10, n.trees=2000, distribution="gaussian")
     opt.iter <- gbm.perf(model, plot.it=FALSE)
-
-    model <- gbm(o ~ t + frac.treated, data=reg.df, cv.folds=10, n.trees=opt.iter, distribution="gaussian")
+    model <- gbm(o ~ t + frac.treated, data=reg.df, n.trees=opt.iter, distribution="gaussian")
     return(get.po.func(model, reg.df, n.trees=opt.iter))
 }
 

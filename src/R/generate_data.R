@@ -82,11 +82,17 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
       net <- erdos.renyi.game(nsubjects, graph.parameters$p)
     } else if(graph.type == "barabasi-albert") {
       net <- barabasi.game(nsubjects, power=graph.parameters$power, directed=FALSE)
+    } else if(!is.null(adjacency.file)){
+      require(Matrix)
+      adj.df <- read.table(adjacency.file, sep='\t', skip = 4)
+      adj.mat <- sparseMatrix(i=adj.df$V1, j=adj.df$V2, symmetric=TRUE, index1=FALSE)
     } else {
       stop(paste0("Unknown graph type", graph.type))
     }
     
-    adj.mat <- as.matrix(get.adjacency(net))
+    if(is.null(adjacency.file)) { 
+      adj.mat <- as.matrix(get.adjacency(net))
+    }
     c1 <- rnorm(nsubjects)
     c2 <- rnorm(nsubjects)
     degrees <- rowSums(adj.mat)
@@ -170,6 +176,33 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
     
     df <- data.frame(c1, c2, t=treatment, o)
     return(list(data=df, adj.mat=adj.mat, outcome.function=po.fun, clusters=clusters))
+}
+
+# This function creates a collection of run configurations in a specified directory
+create.rw.configurations <- function(base.dir) {
+  graph.settings <- c('../../com-lj.ungraph.txt', '../../email-Enron.txt', '../../roadNet-CA.txt', '../../web-Stanford.txt') 
+  
+  experimental.function.settings <- expand.grid(exposure.type=c("linear", "sigmoid","rbf-friends"), 
+                                   of.beta=c(0, 2), ot.beta=c(0, 2), 
+                                   confounding.coeff=c(0), treatment.autocorr.coeff=0, graph.cluster.randomization=TRUE)
+  observational.function.settings <- expand.grid(exposure.type=c("linear", "sigmoid",  "rbf-friends"), 
+                                                of.beta=c(1), ot.beta=c(1), 
+                                                confounding.coeff=c(3), treatment.autocorr.coeff=0, graph.cluster.randomization=FALSE)
+  observational.function.settings <- rbind(observational.function.settings, 
+                                           expand.grid(exposure.type=c("linear", "sigmoid",  "rbf-friends"), 
+                                                 of.beta=c(1), ot.beta=c(1), 
+                                                 confounding.coeff=c(3), treatment.autocorr.coeff=c(1), graph.cluster.randomization=FALSE))
+  function.settings <- rbind(experimental.function.settings, observational.function.settings)
+  # exaggerate effects for some classes of models
+  multipliers <- list("sigmoid"=10)
+  for(type in names(multipliers)) {
+    function.settings[function.settings$exposure.type == type, ]$of.beta <- function.settings[function.settings$exposure.type == type, ]$of.beta * multipliers[[type]]
+    function.settings[function.settings$exposure.type == type, ]$ot.beta <- function.settings[function.settings$exposure.type == type, ]$ot.beta * multipliers[[type]]
+  }
+  
+  all.settings <- merge(function.settings, graph.settings)
+  all.settings$random.seed <- 1:nrow(all.settings)
+  write.csv(all.settings, file.path(base.dir, "all_configurations_rw.csv"))
 }
 
 #create.configurations("~/repos/RelationalICausalInference/experiments/")
