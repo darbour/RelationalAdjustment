@@ -204,7 +204,7 @@ create.rw.configurations <- function(base.dir) {
   
   all.settings <- merge(function.settings, graph.settings)
   all.settings$random.seed <- 1:nrow(all.settings)
-  write.csv(all.settings, file.path(base.dir, "all_configurations.csv"))
+  write.csv(all.settings, file.path(base.dir, "all_configurations_rw.csv"))
 }
 
 #create.configurations("~/repos/RelationalICausalInference/experiments/")
