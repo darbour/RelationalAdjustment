@@ -75,6 +75,7 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
                           treatment.autocorr.coeff, of.beta, ot.beta, t.binary, graph.cluster.randomization, 
                           result.dir, basename, noise.sd=1, verbose=FALSE) {
     set.seed(random.seed)
+    adjacency.file = FALSE
     if(graph.type == "small-world") {
       if(floor(sqrt(nsubjects))**2 != nsubjects) {
         stop(paste("Expected the number of subjects to be perfect square for small world network generation. Got ", nsubjects, ", floor(sqrt(nsubjects))**2: ", floor(sqrt(nsubjects))**2, "."))
@@ -84,15 +85,15 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
       net <- erdos.renyi.game(nsubjects, graph.parameters$p)
     } else if(graph.type == "barabasi-albert") {
       net <- barabasi.game(nsubjects, power=graph.parameters$power, directed=FALSE)
-    } else if(!is.null(adjacency.file)){
-      require(Matrix)
-      adj.df <- read.table(adjacency.file, sep='\t', skip = 4)
-      adj.mat <- sparseMatrix(i=adj.df$V1, j=adj.df$V2, symmetric=TRUE, index1=FALSE)
     } else {
-      stop(paste0("Unknown graph type", graph.type))
+      require(Matrix)
+      adj.df <- read.table(as.character(graph.type), sep='\t', skip = 4)
+      adj.mat <- sparseMatrix(i=adj.df$V1, j=adj.df$V2, symmetric=TRUE, index1=FALSE, dims=c(max(adj.df) + 1, max(adj.df) + 1))
+      nsubjects <- max(adj.df)+1
+      adjacency.file = TRUE
     }
     
-    if(is.null(adjacency.file)) { 
+    if(!(adjacency.file)) { 
       adj.mat <- as.matrix(get.adjacency(net))
     }
     c1 <- rnorm(nsubjects)
@@ -182,7 +183,7 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
 
 # This function creates a collection of run configurations in a specified directory
 create.rw.configurations <- function(base.dir) {
-  graph.settings <- c('../../com-lj.ungraph.txt', '../../email-Enron.txt', '../../roadNet-CA.txt', '../../web-Stanford.txt') 
+  graph.settings <- data.frame(graph.type=c('../../data/com-lj.ungraph.txt', '../../data/email-Enron.txt', '../../data/roadNet-CA.txt', '../../data/web-Stanford.txt'))
   
   experimental.function.settings <- expand.grid(exposure.type=c("linear", "sigmoid","rbf-friends"), 
                                    of.beta=c(0, 2), ot.beta=c(0, 2), 
