@@ -3,7 +3,7 @@
 #commandArgs <- function(trailingOnly=TRUE) { return(c(10, "~/repos/RelationalICausalInference/experiments/all_configurations.csv", "temp.csv"))} 
 
 source("3-net.R")
-debugSource("estimators.R")
+source("estimators.R")
 source("generate_data.R")
 
 main <- function() {
