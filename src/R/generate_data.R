@@ -16,7 +16,11 @@ create.configurations <- function(base.dir) {
                                    confounding.coeff=c(0), treatment.autocorr.coeff=0, graph.cluster.randomization=TRUE)
   observational.function.settings <- expand.grid(exposure.type=c("linear", "sigmoid", "exponential", "rbf-friends"), 
                                                 of.beta=c(1), ot.beta=c(1), 
-                                                confounding.coeff=c(0, 1, 2, 3), treatment.autocorr.coeff=c(0, 10), graph.cluster.randomization=FALSE)
+                                                confounding.coeff=c(0, 1, 2, 3), treatment.autocorr.coeff=0, graph.cluster.randomization=FALSE)
+  observational.function.settings <- rbind(observational.function.settings, 
+                                           expand.grid(exposure.type=c("linear", "sigmoid", "exponential", "rbf-friends"), 
+                                                 of.beta=c(1), ot.beta=c(1), 
+                                                 confounding.coeff=c(0, 1), treatment.autocorr.coeff=c(1,2,5,10), graph.cluster.randomization=FALSE))
   function.settings <- rbind(experimental.function.settings, observational.function.settings)
   # exaggerate effects for some classes of models
   multipliers <- list("sigmoid"=10, "exponential"=10)
@@ -167,8 +171,6 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
     }
     
     df <- data.frame(c1, c2, t=treatment, o)
-    #write.csv(df, file.path(result.dir, paste0("data", basename, ".csv")))
-    #write.csv(adj.mat, file.path(result.dir, paste0("network", basename, ".csv")))
     return(list(data=df, adj.mat=adj.mat, outcome.function=po.fun, clusters=clusters))
 }
 
