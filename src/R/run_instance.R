@@ -68,7 +68,12 @@ run.one <- function(config_file, config_id, trial) {
                       #"Obs-GP-KME"=obs.gp.kme,
                       "Obs-LM-Simple"=obs.linear.simple, 
                       "Obs-LM-Sufficient"=obs.linear.sufficient, 
-                      "Obs-GP-Sufficient"=obs.gp.sufficient)
+                      "Obs-GP-Sufficient"=obs.gp.sufficient
+
+                      # include these as examples of unadjusted analyses
+                      "Exp-GBM"=gbm.estimate, 
+                      "Exp-LM-IND"=lam.I, 
+                      "Exp-LM-INT"=lam.II) 
   }
   
   estimates <- data.frame(method=names(methods), config=config_id, trial=trial)
