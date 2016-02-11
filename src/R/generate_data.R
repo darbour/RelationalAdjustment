@@ -7,23 +7,21 @@ source("3-net.R")
 create.configurations <- function(base.dir) {
   #sizes <- c(100, 400, 900)
   sizes <- c(1024)
-  graph.settings <- expand.grid(graph.type=c("small-world"), degree=5, p=c(0.0, 0.01, 0.10, 0.50, 1.00), power=NA, size=sizes)
+  graph.settings <- expand.grid(graph.type=c("small-world"), degree=5, p=c(0.0, 0.01, 0.10, 0.15), power=NA, size=sizes)
   #graph.settings <- rbind(graph.settings, expand.grid(graph.type=c("erdos-renyi"), p=c(0.05, 0.1, 0.2), degree=NA, power=NA, size=sizes))
   graph.settings <- rbind(graph.settings, expand.grid(graph.type=c("barabasi-albert"), power=c(0.1, 0.5, 1), degree=NA, p=NA, size=sizes))
   
-  experimental.function.settings <- expand.grid(exposure.type=c("linear", "sigmoid", "exponential", "rbf-friends"), 
-                                   of.beta=c(0, 0.5, 1, 1.5), ot.beta=c(0, 0.5, 1, 1.5), 
+  etypes <- c("linear", "sigmoid", "exponential", "rbf-friends")
+  experimental.function.settings <- expand.grid(exposure.type=etypes, 
+                                   of.beta=c(0, 1, 5), ot.beta=c(0, 1, 5), 
                                    confounding.coeff=c(0), treatment.autocorr.coeff=0, graph.cluster.randomization=TRUE)
-  observational.function.settings <- expand.grid(exposure.type=c("linear", "sigmoid", "exponential", "rbf-friends"), 
-                                                of.beta=c(1), ot.beta=c(1), 
-                                                confounding.coeff=c(0, 1, 2, 3), treatment.autocorr.coeff=0, graph.cluster.randomization=FALSE)
-  observational.function.settings <- rbind(observational.function.settings, 
-                                           expand.grid(exposure.type=c("linear", "sigmoid", "exponential", "rbf-friends"), 
-                                                 of.beta=c(1), ot.beta=c(1), 
-                                                 confounding.coeff=c(0, 1), treatment.autocorr.coeff=c(1,2,5,10), graph.cluster.randomization=FALSE))
+  observational.function.settings <- expand.grid(exposure.type=etypes, 
+                                                 of.beta=c(0, 1, 5), ot.beta=c(0, 1, 5), 
+                                                 confounding.coeff=c(1, 3), treatment.autocorr.coeff=c(0,1,2,10), 
+                                                 graph.cluster.randomization=FALSE)
   function.settings <- rbind(experimental.function.settings, observational.function.settings)
   # exaggerate effects for some classes of models
-  multipliers <- list("sigmoid"=10, "exponential"=10)
+  multipliers <- list("sigmoid"=2, "exponential"=2)
   for(type in names(multipliers)) {
     function.settings[function.settings$exposure.type == type, ]$of.beta <- function.settings[function.settings$exposure.type == type, ]$of.beta * multipliers[[type]]
     function.settings[function.settings$exposure.type == type, ]$ot.beta <- function.settings[function.settings$exposure.type == type, ]$ot.beta * multipliers[[type]]
