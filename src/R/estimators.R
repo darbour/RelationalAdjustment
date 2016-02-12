@@ -118,24 +118,25 @@ obs.linear.sufficient <- function(adj.mat, data) {
     return(get.po.func(reg.model, reg.df))
 }
 
-#obs.rks.sufficient <- function(adj.mat, data) {
-#    degrees <- rwoSums(adj.mat)
-#    reg.df <- data
-#    reg.df$frac.treated <- as.numeric((adj.mat %*% data$t) / degrees)
-#    reg.df$mean.fc1 <- as.numeric((adj.mat %*% data$c1) / degrees)
-#    reg.df$mean.fc2 <- as.numeric((adj.mat %*% data$c2) / degrees)
-#    reg.df$var.fc1 <- as.vector((adj.mat %*% data$c1^2) - reg.df$mean.fc1^2) / degrees
-#    reg.df$var.fc1 <- as.vector((adj.mat %*% data$c2^2) - reg.df$mean.fc2^2) / degrees
-#
-#    
-#    x <- cbind(apply(as.matrix(reg.df[,-c('o')]),2,function(u)rank(u)/length(u)),1)
-#    reg.model <- lm(o ~ t + c1 + c2 + frac.treated + mean.fc1 + mean.fc2 + var.fc1 + var.fc2+ mean.fc1:var.fc1 + mean.fc2:var.fc1, data=reg.df)
-#    return(get.po.func(reg.model, reg.df))
-#}
+obs.rks.sufficient <- function(adj.mat, data) {
+    degrees <- rowSums(adj.mat)
+    reg.df <- data
+    reg.df$frac.treated <- as.numeric((adj.mat %*% data$t) / degrees)
+    reg.df$mean.fc1 <- as.numeric((adj.mat %*% data$c1) / degrees)
+    reg.df$mean.fc2 <- as.numeric((adj.mat %*% data$c2) / degrees)
+    reg.df$var.fc1 <- as.vector((adj.mat %*% data$c1^2) - reg.df$mean.fc1^2) / degrees
+    reg.df$var.fc1 <- as.vector((adj.mat %*% data$c2^2) - reg.df$mean.fc2^2) / degrees
+
+    source("rks.R")    
+    x <- as.matrix(reg.df)
+    reg.model <- rks.estimator(x, data$o)
+    #reg.model <- lm(o ~ t + c1 + c2 + frac.treated + mean.fc1 + mean.fc2 + var.fc1 + var.fc2+ mean.fc1:var.fc1 + mean.fc2:var.fc1, data=reg.df)
+    return(get.po.func(reg.model, reg.df))
+}
 
 obs.gp.sufficient <- function(adj.mat, data) {
     require(kernlab)
-    degrees <- apply(adj.mat, 1, sum)
+    degrees <- rowSums(adj.mat)
     reg.df <- data
     reg.df$frac.treated <- as.numeric((adj.mat %*% data$t) / degrees)
     reg.df$mean.fc1 <- as.numeric((adj.mat %*% data$c1) / degrees)
@@ -148,7 +149,7 @@ obs.gp.sufficient <- function(adj.mat, data) {
 }
 
 lam.I <- function(adj.mat, data) {
-    degrees <- apply(adj.mat, 1, sum)
+    degrees <- rowSums(adj.mat)
     reg.df <- data
     reg.df$frac.treated <- as.numeric((adj.mat %*% data$t) / degrees)
 
@@ -157,7 +158,7 @@ lam.I <- function(adj.mat, data) {
 }
 
 lam.II <- function(adj.mat, data) {
-    degrees <- apply(adj.mat, 1, sum)
+    degrees <- rowSums(adj.mat)
     reg.df <- data
     reg.df$frac.treated <- as.numeric((adj.mat %*% data$t) / degrees)
 
@@ -193,9 +194,9 @@ obs.gbm.sufficient <- function(adj.mat, data) {
 
 gbm.estimate <- function(adj.mat, data) {
     require(gbm)
-    degrees <- apply(adj.mat, 1 ,sum)
+    degrees <- rowSums(adj.mat)
     reg.df <- data
-    reg.df$frac.treated <- (adj.mat %*% data$t) / degrees
+    reg.df$frac.treated <- as.vector((adj.mat %*% data$t) / degrees)
 
     model <- gbm(o ~ t + frac.treated, data=reg.df, cv.folds=10, n.trees=2000, distribution="gaussian")
     opt.iter <- gbm.perf(model, plot.it=FALSE)
@@ -206,7 +207,7 @@ gbm.estimate <- function(adj.mat, data) {
 obs.gp.kme <- function(adj.mat, data) {
     # TODO: call KME code
     require(kernlab)
-    degrees <- apply(adj.mat, 1 ,sum)
+    degrees <- rowSums(adj.mat)
     reg.df <- data
     reg.df$frac.treated <- (adj.mat %*% data$t) / degrees
 
@@ -217,7 +218,7 @@ obs.gp.kme <- function(adj.mat, data) {
 
 gp.estimate <- function(adj.mat, data) {
     require(kernlab)
-    degrees <- apply(adj.mat, 1 ,sum)
+    degrees <- rowSums(adj.mat)
     reg.df <- data
     reg.df$frac.treated <- (adj.mat %*% data$t) / degrees
 
