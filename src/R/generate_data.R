@@ -85,13 +85,13 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
       net <- barabasi.game(nsubjects, power=graph.parameters$power, directed=FALSE)
     } else {
       require(Matrix)
-      print("A")
+      cat("Loading", graph.type, "\n")
       adj.df <- read.table(as.character(graph.type), sep='\t', skip = 4)
-      print("A")
+      cat("Converting to sparse matrix ...\n")
       adj.mat <- sparseMatrix(i=adj.df$V1, j=adj.df$V2, symmetric=TRUE, index1=FALSE, dims=c(max(adj.df) + 1, max(adj.df) + 1))
       keepers <- rowSums(adj.mat) > 0
       adj.mat <- adj.mat[keepers, keepers]
-      print("A")
+      cat("Finished loading matrix")
       nsubjects <- nrow(adj.mat)
       adjacency.file = TRUE
     }
@@ -102,13 +102,13 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
     c1 <- rnorm(nsubjects)
     c2 <- rnorm(nsubjects)
     degrees <- rowSums(adj.mat)
-    c1fmean <- (adj.mat %*% c1) / degrees + rnorm(nsubjects)
-    c2fmean <- (adj.mat %*% c2) / degrees + rnorm(nsubjects)
-    c1fvariance <- ((adj.mat %*% (c1^2)) - c1fmean^2) / degrees
-    c2fvariance <- ((adj.mat %*% (c1^2)) - c1fmean^2) / degrees
+    c1fmean <- as.numeric((adj.mat %*% c1) / degrees + rnorm(nsubjects))
+    c2fmean <- as.numeric((adj.mat %*% c2) / degrees + rnorm(nsubjects))
+    c1fvariance <- as.numeric(((adj.mat %*% (c1^2)) - c1fmean^2) / degrees)
+    c2fvariance <- as.numeric(((adj.mat %*% (c1^2)) - c1fmean^2) / degrees)
     confounding.terms <- cbind(c1, c2, c1fmean, c2fmean, c1fvariance, c2fvariance, c1fmean * c1fvariance, c2fmean * c2fvariance)
     confounding.beta <- runif(ncol(confounding.terms))
-    confounding.term <- scale(as.vector(confounding.terms %*% confounding.beta))
+    confounding.term <- scale(confounding.terms %*% confounding.beta)
     if(verbose) {
       plot(density(confounding.term))
     }
@@ -126,8 +126,6 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
       scale.friend.prop <- 0
       for(i in 1:3) { #three Gibbs steps
         if(t.binary) {
-          print(confounding.coeff)
-          print(treatment.autocorr.coeff)
           t.prob <- 1 / (1 + exp(-(confounding.coeff * confounding.term  + treatment.autocorr.coeff * scale.friend.prop) + rnorm(nsubjects)))
           treatment <- rbinom(nsubjects, 1, prob=t.prob)      
         } else {
