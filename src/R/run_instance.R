@@ -70,7 +70,7 @@ run.one <- function(config_file, config_id, trial) {
                       "Obs-LM-Sufficient"=obs.linear.sufficient, 
                       "Obs-RKS-Sufficient"=obs.rks.sufficient,
                       # include these as examples of unadjusted analyses
-                      #"Exp-GBM"=gbm.estimate, 
+                      "Exp-GBM"=gbm.estimate, 
                       "Exp-LM-IND"=lam.I, 
                       "Exp-LM-INT"=lam.II) 
   }
