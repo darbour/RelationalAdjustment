@@ -178,7 +178,7 @@ obs.gbm.sufficient <- function(adj.mat, data) {
     
     reg.df$var.fc2 <- as.vector((adj.mat %*% data$c2^2) - reg.df$mean.fc2^2) / degrees
     
-    if(nrow(adj.mat) > 1024) {
+    if(nrow(adj.mat) > 1e5) {
         model <- gbm(o ~ t + frac.treated + mean.fc1 + mean.fc2 + var.fc1 + var.fc2, data=reg.df[sample(1:nrow(adj.mat), 2048),], cv.folds=10, n.trees=2000, distribution="gaussian", n.cores=15)
         opt.iter <- gbm.perf(model, plot.it=FALSE)
     } else {
