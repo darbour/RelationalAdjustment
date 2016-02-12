@@ -44,7 +44,7 @@ run.one <- function(config_file, config_id, trial) {
 
   if(config$graph.cluster.randomization) {
       methods <- list("Actual"=function(junk1, junk2) gendata$outcome.function, 
-                      "Exp-GBM"=gbm.estimate, 
+                      #"Exp-GBM"=gbm.estimate, 
                       "Exp-LM-IND"=lam.I, 
                       "Exp-LM-INT"=lam.II, 
                       "Exp-HT"=function(adj.mat, data) {
@@ -67,9 +67,9 @@ run.one <- function(config_file, config_id, trial) {
                       #"Obs-GP-KME"=obs.gp.kme,
                       "Obs-LM-Simple"=obs.linear.simple, 
                       "Obs-LM-Sufficient"=obs.linear.sufficient, 
-
+                      "Obs-RKS-Sufficient"=obs.rks.sufficient,
                       # include these as examples of unadjusted analyses
-                      "Exp-GBM"=gbm.estimate, 
+                      #"Exp-GBM"=gbm.estimate, 
                       "Exp-LM-IND"=lam.I, 
                       "Exp-LM-INT"=lam.II) 
   }
