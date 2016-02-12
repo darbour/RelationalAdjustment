@@ -85,9 +85,14 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
       net <- barabasi.game(nsubjects, power=graph.parameters$power, directed=FALSE)
     } else {
       require(Matrix)
+      print("A")
       adj.df <- read.table(as.character(graph.type), sep='\t', skip = 4)
+      print("A")
       adj.mat <- sparseMatrix(i=adj.df$V1, j=adj.df$V2, symmetric=TRUE, index1=FALSE, dims=c(max(adj.df) + 1, max(adj.df) + 1))
-      nsubjects <- max(adj.df)+1
+      keepers <- rowSums(adj.mat) > 0
+      adj.mat <- adj.mat[keepers, keepers]
+      print("A")
+      nsubjects <- nrow(adj.mat)
       adjacency.file = TRUE
     }
     
@@ -99,11 +104,11 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
     degrees <- rowSums(adj.mat)
     c1fmean <- (adj.mat %*% c1) / degrees + rnorm(nsubjects)
     c2fmean <- (adj.mat %*% c2) / degrees + rnorm(nsubjects)
-    c1fvariance <- aaply(1:nsubjects, 1, function(i) var(c1[as.logical(adj.mat[1, ])]))
-    c2fvariance <- aaply(1:nsubjects, 1, function(i) var(c2[as.logical(adj.mat[1, ])]))
+    c1fvariance <- ((adj.mat %*% (c1^2)) - c1fmean^2) / degrees
+    c2fvariance <- ((adj.mat %*% (c1^2)) - c1fmean^2) / degrees
     confounding.terms <- cbind(c1, c2, c1fmean, c2fmean, c1fvariance, c2fvariance, c1fmean * c1fvariance, c2fmean * c2fvariance)
     confounding.beta <- runif(ncol(confounding.terms))
-    confounding.term <- scale(confounding.terms %*% confounding.beta)
+    confounding.term <- scale(as.vector(confounding.terms %*% confounding.beta))
     if(verbose) {
       plot(density(confounding.term))
     }
@@ -121,6 +126,8 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
       scale.friend.prop <- 0
       for(i in 1:3) { #three Gibbs steps
         if(t.binary) {
+          print(confounding.coeff)
+          print(treatment.autocorr.coeff)
           t.prob <- 1 / (1 + exp(-(confounding.coeff * confounding.term  + treatment.autocorr.coeff * scale.friend.prop) + rnorm(nsubjects)))
           treatment <- rbinom(nsubjects, 1, prob=t.prob)      
         } else {
@@ -175,13 +182,13 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
       with(actual.dose.response, plot(hypothetical.friend.prop, potential.o, type="l"))
     }
     
-    df <- data.frame(c1, c2, t=treatment, o)
+    df <- data.frame(c1=as.vector(c1), c2=as.vector(c2), t=as.vector(treatment), o=as.vector(o))
     return(list(data=df, adj.mat=adj.mat, outcome.function=po.fun, clusters=clusters))
 }
 
 # This function creates a collection of run configurations in a specified directory
 create.rw.configurations <- function(base.dir) {
-  graph.settings <- data.frame(graph.type=c('../../data/com-lj.ungraph.txt', '../../data/email-Enron.txt', '../../data/roadNet-CA.txt', '../../data/web-Stanford.txt'))
+  graph.settings <- data.frame(graph.type=c('../../data/email-Enron.txt', '../../data/roadNet-CA.txt', '../../data/web-Stanford.txt'))
   
   experimental.function.settings <- expand.grid(exposure.type=c("linear", "sigmoid","rbf-friends"), 
                                    of.beta=c(0, 2), ot.beta=c(0, 2), 
