@@ -16,7 +16,7 @@ main <- function() {
     config_file <- args[2]
     output_file <- args[3]
 
-    for(trial in 1:50) {
+    for(trial in 1:25) {
       cat(paste0("Running instance ", config_id, " trial ", trial, " from configuration file  ", config_file, "\n"))
       cat(paste0("Output file: ", output_file, "\n"))
 
@@ -47,6 +47,7 @@ run.one <- function(config_file, config_id, trial) {
                       "Exp-GBM"=gbm.estimate, 
                       "Exp-LM-IND"=lam.I, 
                       "Exp-LM-INT"=lam.II, 
+                      "Obs-GBM-Sufficient"=obs.gbm.sufficient,
                       "Exp-HT"=function(adj.mat, data) {
                         htmeans <- ugander.horvitz.thompson(adj.mat, data, gendata$clusters, 0.75)
                         return(function(myt=NULL, friendt=NULL) {
