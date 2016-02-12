@@ -1,4 +1,4 @@
-rks.estimator <- function(x,y,s=1/6,f=sin, k=20, alpha=0.001) {
+rks.estimator <- function(x,y,s=1/6,f=sin, k=20, alpha=0.000001) {
     x <- cbind(apply(as.matrix(x),2,function(u)rank(u)/length(u)),1)
     transform.mat <- matrix(rnorm(ncol(x)*k),ncol(x))
     x <- s/ncol(x)*x%*%transform.mat
@@ -17,4 +17,3 @@ predict.rks <- function(obj, newdata=NULL) {
     x <- obj$f(x)
     return(x %*% obj$weights)
 }
-
