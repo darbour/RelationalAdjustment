@@ -197,7 +197,7 @@ create.rw.configurations <- function(base.dir) {
                                            expand.grid(exposure.type=c("linear", "sigmoid",  "rbf-friends"), 
                                                  of.beta=c(1), ot.beta=c(1), 
                                                  confounding.coeff=c(3), treatment.autocorr.coeff=c(1), graph.cluster.randomization=FALSE))
-  function.settings <- rbind(experimental.function.settings, observational.function.settings)
+  function.settings <- observational.function.settings
   # exaggerate effects for some classes of models
   multipliers <- list("sigmoid"=10)
   for(type in names(multipliers)) {
