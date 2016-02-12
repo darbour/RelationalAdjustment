@@ -48,6 +48,7 @@ run.one <- function(config_file, config_id, trial) {
                       "Exp-LM-IND"=lam.I, 
                       "Exp-LM-INT"=lam.II, 
                       "Obs-GBM-Sufficient"=obs.gbm.sufficient,
+                      "Obs-RKS-Sufficient"=obs.rks.sufficient,
                       "Exp-HT"=function(adj.mat, data) {
                         htmeans <- ugander.horvitz.thompson(adj.mat, data, gendata$clusters, 0.75)
                         return(function(myt=NULL, friendt=NULL) {
