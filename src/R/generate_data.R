@@ -190,9 +190,6 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
 create.rw.configurations <- function(base.dir) {
   graph.settings <- data.frame(graph.type=c('../../data/email-Enron.txt', '../../data/roadNet-CA.txt', '../../data/web-Stanford.txt'))
   
-  experimental.function.settings <- expand.grid(exposure.type=c("linear", "sigmoid","rbf-friends"), 
-                                   of.beta=c(0, 2), ot.beta=c(0, 2), 
-                                   confounding.coeff=c(0), treatment.autocorr.coeff=0, graph.cluster.randomization=TRUE)
   observational.function.settings <- expand.grid(exposure.type=c("linear", "sigmoid",  "rbf-friends"), 
                                                 of.beta=c(1), ot.beta=c(1), 
                                                 confounding.coeff=c(3), treatment.autocorr.coeff=0, graph.cluster.randomization=FALSE)
