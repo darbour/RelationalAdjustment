@@ -31,28 +31,35 @@ single.inst.per.trial <- subset(results.with.config, setting == 0 & graph.cluste
 experimental.results <- ddply(single.inst.per.trial, .(method, exposure.type, graph.type), summarize, mean.err = mean(global.effect.err), sd.err=sd(global.effect.err))
 experimental.results$exposure.type <- revalue(experimental.results$exposure.type, c("exponential"="Exponential", "linear"="Linear", "rbf-friends"="RBF", "sigmoid"="Sigmoid"))
 experimental.results$graph.type <- revalue(experimental.results$graph.type, c("barabasi-albert"="Pref.\nAttach.", "small-world"="Small\nWorld"))
-g <- ggplot(subset(experimental.results, method != "Actual" & method != "Obs-RKS-Sufficient" & method != "Exp-LM-IND"), 
+g <- ggplot(subset(experimental.results, method != "Actual" & method != "Obs-RKS-Sufficient" & method != "Exp-LM-INT"), 
        aes(x=method, y=mean.err, ymin=mean.err-sd.err, ymax=mean.err+sd.err, color=method)) + 
     facet_grid(graph.type~exposure.type) + geom_errorbar(size=2) + geom_hline(yintercept=0, color="blue") + theme_bw(base_size=20) + 
-    labs(x="Method", y="Estimated - Actual") + scale_x_discrete(breaks=c("Exp-HT", "Exp-LM-INT", "Obs-GBM-Sufficient"), labels=c("HT", "LM", "GBM")) + 
-    scale_color_manual(values=c("Exp-HT"="slateblue", "Exp-LM-INT"="gray47", "Obs-GBM-Sufficient"="red")) + guides(color="none")
+    labs(x="Method", y="Estimated - Actual") + scale_x_discrete(breaks=c("Exp-HT", "Exp-LM-IND", "Obs-GBM-Sufficient"), labels=c("HT", "LM", "GBM")) + 
+    scale_color_manual(values=c("Exp-HT"="slateblue", "Exp-LM-IND"="gray47", "Obs-GBM-Sufficient"="red")) + guides(color="none")
 png("experimental-perf.png", width=800, height=300)
 print(g)
 dev.off()
 print(g)
 
-results.summ <- ddply(subset(results.with.config, !is.na(value.est)), .(config, method, setting, exposure.type, effect.type), 
+# prune exponential results that exploded
+results.prune.exponential <- subset(results.with.config, confounding.coeff < 3 & of.beta < 10 & ot.beta < 10)
+results.summ <- ddply(subset(results.prune.exponential, !is.na(value.est)), .(config, method, setting, exposure.type, effect.type), 
                       summarize, rmse = sqrt(sum((value.est - value.act)^2) / length(value.act)))
 # bring the configuration back
 results.summ <- merge(results.summ, configuration, by.x="config", by.y="X")
 
 table.by.method <- ddply(subset(results.summ, graph.cluster.randomization == FALSE & 
                                   effect.type == "Marginal Peer" & method != "Actual" & 
-                                  treatment.autocorr.coeff == 2), 
-                            .(exposure.type.x, method), summarize, meanrmse = mean(rmse))
+                                  treatment.autocorr.coeff == 2 & method %in% c("Exp-LM-IND", "Obs-GBM-Sufficient", "Obs-LM-Simple", "Obs-LM-Sufficient")), 
+                            .(exposure.type.x, method, of.beta, ot.beta), summarize, meanrmse = mean(rmse), sdrmse=sd(rmse))
+table.by.method <- subset(subset(table.by.method, of.beta >= 2 & ot.beta >= 2), select=-c(of.beta, ot.beta))
+table.by.method$contents <- with(table.by.method, paste0(round(meanrmse, ifelse(meanrmse > 100, 0, 4)), " (", round(sdrmse, ifelse(meanrmse > 100, 0, 3))))
+table.by.method$exposure.type.x <- revalue(table.by.method$exposure.type.x, c("exponential"="Exponential", "linear"="Linear", "rbf-friends"="RBF", "sigmoid"="Sigmoid"))
+table.by.method$method <- revalue(table.by.method$method, c("Exp-LM-IND"="Unadjusted LM", "Obs-GBM-Sufficient"="GBM", "Obs-LM-Simple"="Insufficient LM", "Obs-LM-Sufficient"="Sufficient LM"))
 results.table <- reshape(table.by.method, timevar ="exposure.type.x", direction="wide", idvar="method")
+colnames(results.table) <- str_replace(colnames(results.table), "meanrmse.", "")
 library(xtable)
-print(xtable(results.table))
+print(xtable(results.table), row.names=FALSE)
 
 ggplot(subset(results.summ, graph.cluster.randomization == FALSE & effect.type == "Marginal Individual" &
                 method != "Actual" & confounding.coeff == 1 & treatment.autocorr.coeff == 2 & 

@@ -21,12 +21,13 @@ create.configurations <- function(base.dir) {
                                                  graph.cluster.randomization=FALSE)
   function.settings <- rbind(experimental.function.settings, observational.function.settings)
   # exaggerate effects for some classes of models
-  multipliers <- list("sigmoid"=2, "exponential"=2)
+  multipliers <- list("sigmoid"=2)
   for(type in names(multipliers)) {
     function.settings[function.settings$exposure.type == type, ]$of.beta <- function.settings[function.settings$exposure.type == type, ]$of.beta * multipliers[[type]]
     function.settings[function.settings$exposure.type == type, ]$ot.beta <- function.settings[function.settings$exposure.type == type, ]$ot.beta * multipliers[[type]]
   }
   
+  graph.settings$graph.id <- 1:nrow(graph.settings)
   all.settings <- merge(function.settings, graph.settings)
   all.settings$random.seed <- 1:nrow(all.settings)
   write.csv(all.settings, file.path(base.dir, "all_configurations.csv"))
@@ -48,6 +49,7 @@ generate.by.index <- function(config.data, idx, random.seed=NULL, verbose=FALSE,
                 treatment.autocorr.coeff=config$treatment.autocorr.coeff,
                 of.beta=config$of.beta,
                 ot.beta=config$ot.beta,
+                graph.id=config$graph.id,
                 t.binary=TRUE,
                 graph.cluster.randomization=config$graph.cluster.randomization,
                 result.dir=".",
@@ -70,9 +72,9 @@ generate.by.index <- function(config.data, idx, random.seed=NULL, verbose=FALSE,
 #                       exponential -- Outcome is related to a linear combination of treatment, fp, and confounders through an exponential link
 #   graph.cluster.randomization -- Indicates whether treatment will be assigned experimentally with graph cluster randomization, or observed passively.
 generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, exposure.type, confounding.coeff, 
-                          treatment.autocorr.coeff, of.beta, ot.beta, t.binary, graph.cluster.randomization, 
+                          treatment.autocorr.coeff, of.beta, ot.beta, t.binary, graph.cluster.randomization, graph.id,
                           result.dir, basename, noise.sd=1, verbose=FALSE) {
-    set.seed(random.seed)
+    set.seed(graph.id) # random seed for the graph
     adjacency.file = FALSE
     if(graph.type == "small-world") {
       if(floor(sqrt(nsubjects))**2 != nsubjects) {
@@ -95,6 +97,7 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
       nsubjects <- nrow(adj.mat)
       adjacency.file = TRUE
     }
+    set.seed(random.seed)
     
     if(!(adjacency.file)) { 
       adj.mat <- as.matrix(get.adjacency(net))
@@ -208,4 +211,4 @@ create.rw.configurations <- function(base.dir) {
   write.csv(all.settings, file.path(base.dir, "all_configurations_rw.csv"))
 }
 
-#create.configurations("~/repos/RelationalICausalInference/experiments/")
+create.configurations("~/repos/RelationalICausalInference/experiments/")
