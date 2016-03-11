@@ -142,11 +142,11 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
     
     if(exposure.type == "linear") {
       ofun <- function(treat, friend.pt, sdnoise=1) {
-        ot.beta * treatment + of.beta * friend.pt + confounding.coeff * confounding.term + rnorm(nsubjects, sd=sdnoise)
+        ot.beta * treat + of.beta * friend.pt + confounding.coeff * confounding.term + rnorm(nsubjects, sd=sdnoise)
       }
     } else if(exposure.type == "rbf-friends") {
       ofun <- function(treat, friend.pt, sdnoise=1) {
-        ot.beta * treatment + of.beta * exp(-(friend.pt - 0.5)**2) + confounding.coeff * confounding.term + rnorm(nsubjects, sd=sdnoise)
+        ot.beta * treat + of.beta * exp(-(friend.pt - 0.5)**2) + confounding.coeff * confounding.term + rnorm(nsubjects, sd=sdnoise)
       }
     } else if(exposure.type == "sigmoid") {
       ofun <- function(treat, friend.pt, sdnoise=1) {
