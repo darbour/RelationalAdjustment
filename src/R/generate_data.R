@@ -189,7 +189,7 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
 
 # This function creates a collection of run configurations in a specified directory
 create.rw.configurations <- function(base.dir) {
-  graph.settings <- data.frame(graph.type=c('../../data/twitter_combined.txt', '../../data/email-Enron.txt', '../../data/roadNet-CA.txt', '../../data/web-Stanford.txt'))
+  graph.settings <- data.frame(graph.type=c('../../data/email-Enron.txt', '../../data/web-Stanford.txt'))
   
   observational.function.settings <- expand.grid(exposure.type=c("linear", "sigmoid",  "rbf-friends"), 
                                                 of.beta=c(3), ot.beta=c(3), 
@@ -211,4 +211,4 @@ create.rw.configurations <- function(base.dir) {
   write.csv(all.settings, file.path(base.dir, "all_configurations_rw.csv"))
 }
 
-create.configurations("~/repos/RelationalICausalInference/experiments/")
+#create.configurations("~/repos/RelationalICausalInference/experiments/")
