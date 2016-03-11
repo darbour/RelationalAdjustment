@@ -189,15 +189,15 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
 
 # This function creates a collection of run configurations in a specified directory
 create.rw.configurations <- function(base.dir) {
-  graph.settings <- data.frame(graph.type=c('../../data/email-Enron.txt', '../../data/roadNet-CA.txt', '../../data/web-Stanford.txt'))
+  graph.settings <- data.frame(graph.type=c('../../data/twitter_combined.txt', '../../data/email-Enron.txt', '../../data/roadNet-CA.txt', '../../data/web-Stanford.txt'))
   
   observational.function.settings <- expand.grid(exposure.type=c("linear", "sigmoid",  "rbf-friends"), 
-                                                of.beta=c(1), ot.beta=c(1), 
+                                                of.beta=c(3), ot.beta=c(3), 
                                                 confounding.coeff=c(3), treatment.autocorr.coeff=0, graph.cluster.randomization=FALSE)
   observational.function.settings <- rbind(observational.function.settings, 
                                            expand.grid(exposure.type=c("linear", "sigmoid",  "rbf-friends"), 
-                                                 of.beta=c(1), ot.beta=c(1), 
-                                                 confounding.coeff=c(3), treatment.autocorr.coeff=c(1), graph.cluster.randomization=FALSE))
+                                                 of.beta=c(3), ot.beta=c(1), 
+                                                 confounding.coeff=c(3), treatment.autocorr.coeff=c(2), graph.cluster.randomization=FALSE))
   function.settings <- observational.function.settings
   # exaggerate effects for some classes of models
   multipliers <- list("sigmoid"=10)
