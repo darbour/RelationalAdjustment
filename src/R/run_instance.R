@@ -44,7 +44,7 @@ run.one <- function(config_file, config_id, trial) {
 
   if(config$graph.cluster.randomization) {
       methods <- list("Actual"=function(junk1, junk2) gendata$outcome.function, 
-                      #"Exp-GBM"=gbm.estimate, 
+                      "Exp-GBM"=gbm.estimate, 
                       "Exp-LM-IND"=lam.I, 
                       "Exp-LM-INT"=lam.II, 
                       "Obs-GBM-Sufficient"=obs.gbm.sufficient,
