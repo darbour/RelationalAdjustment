@@ -7,24 +7,27 @@ source("3-net.R")
 create.configurations <- function(base.dir) {
   #sizes <- c(100, 400, 900)
   sizes <- c(1024)
-  graph.settings <- expand.grid(graph.type=c("small-world"), degree=5, p=c(0.0, 0.01, 0.10, 0.50, 1.00), power=NA, size=sizes)
+  graph.settings <- expand.grid(graph.type=c("small-world"), degree=5, p=c(0.0, 0.01, 0.10, 0.15), power=NA, size=sizes)
   #graph.settings <- rbind(graph.settings, expand.grid(graph.type=c("erdos-renyi"), p=c(0.05, 0.1, 0.2), degree=NA, power=NA, size=sizes))
   graph.settings <- rbind(graph.settings, expand.grid(graph.type=c("barabasi-albert"), power=c(0.1, 0.5, 1), degree=NA, p=NA, size=sizes))
   
-  experimental.function.settings <- expand.grid(exposure.type=c("linear", "sigmoid", "exponential", "rbf-friends"), 
-                                   of.beta=c(0, 0.5, 1, 1.5), ot.beta=c(0, 0.5, 1, 1.5), 
+  etypes <- c("linear", "sigmoid", "exponential", "rbf-friends")
+  experimental.function.settings <- expand.grid(exposure.type=etypes, 
+                                   of.beta=c(0, 1, 5), ot.beta=c(0, 1, 5), 
                                    confounding.coeff=c(0), treatment.autocorr.coeff=0, graph.cluster.randomization=TRUE)
-  observational.function.settings <- expand.grid(exposure.type=c("linear", "sigmoid", "exponential", "rbf-friends"), 
-                                                of.beta=c(1), ot.beta=c(1), 
-                                                confounding.coeff=c(0, 1, 2, 3), treatment.autocorr.coeff=c(0, 10), graph.cluster.randomization=FALSE)
+  observational.function.settings <- expand.grid(exposure.type=etypes, 
+                                                 of.beta=c(0, 1, 5), ot.beta=c(0, 1, 5), 
+                                                 confounding.coeff=c(1, 3), treatment.autocorr.coeff=c(0,1,2,10), 
+                                                 graph.cluster.randomization=FALSE)
   function.settings <- rbind(experimental.function.settings, observational.function.settings)
   # exaggerate effects for some classes of models
-  multipliers <- list("sigmoid"=10, "exponential"=10)
+  multipliers <- list("sigmoid"=2)
   for(type in names(multipliers)) {
     function.settings[function.settings$exposure.type == type, ]$of.beta <- function.settings[function.settings$exposure.type == type, ]$of.beta * multipliers[[type]]
     function.settings[function.settings$exposure.type == type, ]$ot.beta <- function.settings[function.settings$exposure.type == type, ]$ot.beta * multipliers[[type]]
   }
   
+  graph.settings$graph.id <- 1:nrow(graph.settings)
   all.settings <- merge(function.settings, graph.settings)
   all.settings$random.seed <- 1:nrow(all.settings)
   write.csv(all.settings, file.path(base.dir, "all_configurations.csv"))
@@ -46,6 +49,7 @@ generate.by.index <- function(config.data, idx, random.seed=NULL, verbose=FALSE,
                 treatment.autocorr.coeff=config$treatment.autocorr.coeff,
                 of.beta=config$of.beta,
                 ot.beta=config$ot.beta,
+                graph.id=config$graph.id,
                 t.binary=TRUE,
                 graph.cluster.randomization=config$graph.cluster.randomization,
                 result.dir=".",
@@ -68,9 +72,10 @@ generate.by.index <- function(config.data, idx, random.seed=NULL, verbose=FALSE,
 #                       exponential -- Outcome is related to a linear combination of treatment, fp, and confounders through an exponential link
 #   graph.cluster.randomization -- Indicates whether treatment will be assigned experimentally with graph cluster randomization, or observed passively.
 generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, exposure.type, confounding.coeff, 
-                          treatment.autocorr.coeff, of.beta, ot.beta, t.binary, graph.cluster.randomization, 
+                          treatment.autocorr.coeff, of.beta, ot.beta, t.binary, graph.cluster.randomization, graph.id,
                           result.dir, basename, noise.sd=1, verbose=FALSE) {
-    set.seed(random.seed)
+    set.seed(graph.id) # random seed for the graph
+    adjacency.file = FALSE
     if(graph.type == "small-world") {
       if(floor(sqrt(nsubjects))**2 != nsubjects) {
         stop(paste("Expected the number of subjects to be perfect square for small world network generation. Got ", nsubjects, ", floor(sqrt(nsubjects))**2: ", floor(sqrt(nsubjects))**2, "."))
@@ -81,17 +86,29 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
     } else if(graph.type == "barabasi-albert") {
       net <- barabasi.game(nsubjects, power=graph.parameters$power, directed=FALSE)
     } else {
-      stop(paste0("Unknown graph type", graph.type))
+      require(Matrix)
+      cat("Loading", graph.type, "\n")
+      adj.df <- read.table(as.character(graph.type), sep='\t', skip = 4)
+      cat("Converting to sparse matrix ...\n")
+      adj.mat <- sparseMatrix(i=adj.df$V1, j=adj.df$V2, symmetric=TRUE, index1=FALSE, dims=c(max(adj.df) + 1, max(adj.df) + 1))
+      keepers <- rowSums(adj.mat) > 0
+      adj.mat <- adj.mat[keepers, keepers]
+      cat("Finished loading matrix")
+      nsubjects <- nrow(adj.mat)
+      adjacency.file = TRUE
     }
+    set.seed(random.seed)
     
-    adj.mat <- as.matrix(get.adjacency(net))
+    if(!(adjacency.file)) { 
+      adj.mat <- as.matrix(get.adjacency(net))
+    }
     c1 <- rnorm(nsubjects)
     c2 <- rnorm(nsubjects)
     degrees <- rowSums(adj.mat)
-    c1fmean <- (adj.mat %*% c1) / degrees + rnorm(nsubjects)
-    c2fmean <- (adj.mat %*% c2) / degrees + rnorm(nsubjects)
-    c1fvariance <- aaply(1:nsubjects, 1, function(i) var(c1[as.logical(adj.mat[1, ])]))
-    c2fvariance <- aaply(1:nsubjects, 1, function(i) var(c2[as.logical(adj.mat[1, ])]))
+    c1fmean <- as.numeric((adj.mat %*% c1) / degrees + rnorm(nsubjects))
+    c2fmean <- as.numeric((adj.mat %*% c2) / degrees + rnorm(nsubjects))
+    c1fvariance <- as.numeric(((adj.mat %*% (c1^2)) - c1fmean^2) / degrees)
+    c2fvariance <- as.numeric(((adj.mat %*% (c1^2)) - c1fmean^2) / degrees)
     confounding.terms <- cbind(c1, c2, c1fmean, c2fmean, c1fvariance, c2fvariance, c1fmean * c1fvariance, c2fmean * c2fvariance)
     confounding.beta <- runif(ncol(confounding.terms))
     confounding.term <- scale(confounding.terms %*% confounding.beta)
@@ -125,11 +142,11 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
     
     if(exposure.type == "linear") {
       ofun <- function(treat, friend.pt, sdnoise=1) {
-        ot.beta * treatment + of.beta * friend.pt + confounding.coeff * confounding.term + rnorm(nsubjects, sd=sdnoise)
+        ot.beta * treat + of.beta * friend.pt + confounding.coeff * confounding.term + rnorm(nsubjects, sd=sdnoise)
       }
     } else if(exposure.type == "rbf-friends") {
       ofun <- function(treat, friend.pt, sdnoise=1) {
-        ot.beta * treatment + of.beta * exp(-(friend.pt - 0.5)**2) + confounding.coeff * confounding.term + rnorm(nsubjects, sd=sdnoise)
+        ot.beta * treat + of.beta * exp(-(friend.pt - 0.5)**2) + confounding.coeff * confounding.term + rnorm(nsubjects, sd=sdnoise)
       }
     } else if(exposure.type == "sigmoid") {
       ofun <- function(treat, friend.pt, sdnoise=1) {
@@ -166,10 +183,32 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
       with(actual.dose.response, plot(hypothetical.friend.prop, potential.o, type="l"))
     }
     
-    df <- data.frame(c1, c2, t=treatment, o)
-    #write.csv(df, file.path(result.dir, paste0("data", basename, ".csv")))
-    #write.csv(adj.mat, file.path(result.dir, paste0("network", basename, ".csv")))
+    df <- data.frame(c1=as.vector(c1), c2=as.vector(c2), t=as.vector(treatment), o=as.vector(o))
     return(list(data=df, adj.mat=adj.mat, outcome.function=po.fun, clusters=clusters))
+}
+
+# This function creates a collection of run configurations in a specified directory
+create.rw.configurations <- function(base.dir) {
+  graph.settings <- data.frame(graph.type=c('../../data/email-Enron.txt', '../../data/web-Stanford.txt'))
+  
+  observational.function.settings <- expand.grid(exposure.type=c("linear", "sigmoid",  "rbf-friends"), 
+                                                of.beta=c(3), ot.beta=c(3), 
+                                                confounding.coeff=c(3), treatment.autocorr.coeff=0, graph.cluster.randomization=FALSE)
+  observational.function.settings <- rbind(observational.function.settings, 
+                                           expand.grid(exposure.type=c("linear", "sigmoid",  "rbf-friends"), 
+                                                 of.beta=c(3), ot.beta=c(1), 
+                                                 confounding.coeff=c(3), treatment.autocorr.coeff=c(2), graph.cluster.randomization=FALSE))
+  function.settings <- observational.function.settings
+  # exaggerate effects for some classes of models
+  multipliers <- list("sigmoid"=10)
+  for(type in names(multipliers)) {
+    function.settings[function.settings$exposure.type == type, ]$of.beta <- function.settings[function.settings$exposure.type == type, ]$of.beta * multipliers[[type]]
+    function.settings[function.settings$exposure.type == type, ]$ot.beta <- function.settings[function.settings$exposure.type == type, ]$ot.beta * multipliers[[type]]
+  }
+  
+  all.settings <- merge(function.settings, graph.settings)
+  all.settings$random.seed <- 1:nrow(all.settings)
+  write.csv(all.settings, file.path(base.dir, "all_configurations_rw.csv"))
 }
 
 #create.configurations("~/repos/RelationalICausalInference/experiments/")
