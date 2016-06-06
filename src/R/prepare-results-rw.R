@@ -3,14 +3,9 @@ library(stringr)
 library(reshape2)
 library(plyr)
 
-results_obs <- read.csv("~/Downloads/usable_results_rw.csv")
-results_exp <- read.csv("~/Downloads/results_rw_exp.csv")
-configuration <- read.csv("~/Downloads/configs.csv")
+results <- read.csv("../../experiments/results_rw.csv")
+configuration <- read.csv("../../experiments/all_configurations_rw.csv")
 
-results_exp <- subset(results_exp, method %in% c("Actual", "Exp-LM-IND"))
-results_obs <- subset(results_obs, method %in% c("Actual", "Obs-GBM-Sufficient", "Exp-GBM", "Obs-LM-Sufficient"))
-
-results <- rbind(results_exp, results_obs)
 results$global.effect <- results$global_treatment - results$global_control
 results$indiv.effect <- results$mt_1 - results$mt_0
 
@@ -55,12 +50,13 @@ indiv.effect.perf <- subset(indiv.effect.perf, select=-c(mean.err, sd.err))
 results.table <- reshape(indiv.effect.perf, timevar ="method", direction="wide", idvar="exposure.type")
 colnames(results.table) <- c("", "ExpLM", "ObsGBM")
 library(xtable)
+cat("Individual effect performance:\n")
 print(xtable(results.table), row.names=FALSE)
 
 
 experimental.results <- ddply(single.inst.per.trial, .(method, exposure.type, graph.type), summarize, mean.err = mean(global.effect.err), sd.err=sd(global.effect.err))
-experimental.results$exposure.type <- revalue(experimental.results$exposure.type, c("exponential"="Exponential", "linear"="Linear", "rbf-friends"="RBF", "sigmoid"="Sigmoid"))
-experimental.results$graph.type <- revalue(experimental.results$graph.type, c("barabasi-albert"="Pref.\nAttach.", "small-world"="Small\nWorld"))
+#experimental.results$exposure.type <- revalue(experimental.results$exposure.type, c("exponential"="Exponential", "linear"="Linear", "rbf-friends"="RBF", "sigmoid"="Sigmoid"))
+#experimental.results$graph.type <- revalue(experimental.results$graph.type, c("barabasi-albert"="Pref.\nAttach.", "small-world"="Small\nWorld"))
 g <- ggplot(subset(experimental.results, method != "Actual" & method != "Obs-RKS-Sufficient" & method != "Exp-LM-INT"), 
        aes(x=method, y=mean.err, ymin=mean.err-sd.err, ymax=mean.err+sd.err, color=method)) + 
     facet_grid(graph.type~exposure.type) + geom_errorbar(size=2) + geom_hline(yintercept=0, color="blue") + theme_bw(base_size=20) + 
@@ -86,6 +82,7 @@ table.by.method <- subset(table.by.method, select=-c(meanrmse, sdrmse))
 results.table <- reshape(table.by.method, timevar ="method", direction="wide", idvar="exposure.type.x")
 colnames(results.table) <- str_replace(colnames(results.table), "contents.", "")
 library(xtable)
+cat("Individual effect performance:\n")
 print(xtable(results.table), row.names=FALSE)
 
 ggplot(subset(results.summ, graph.cluster.randomization == FALSE & effect.type == "Marginal Individual" &

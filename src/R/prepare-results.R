@@ -7,7 +7,7 @@ results <- read.csv("../../experiments/results.csv")
 configuration <- read.csv("../../experiments/all_configurations.csv")
 
 results$global.effect <- results$global_treatment - results$global_control
-results$indiv.effect <- results$mt_1 - results$mt_0
+results$indiv.effect <- results$mt_1 - results$mt_0 
 
 # reshape the data into a plottable form
 melt.results <- melt(results, idvar=c("method", "config", "trial", "global.effect", "indiv.effect"), 
@@ -73,9 +73,10 @@ plot.compare.dat <- subset(compare.exp.obs, exposure.type != "exponential" & met
                                 (treatment.autocorr.coeff == 0 & graph.cluster.randomization == TRUE)))
 plot.compare.dat$exposure.type <- revalue(plot.compare.dat$exposure.type, c("linear"="Linear", "rbf-friends"="RBF", "sigmoid"="Sigmoid"))
 plot.compare.dat$confounding.coeff <- paste0("Confounding ", plot.compare.dat$confounding.coeff)
-g <- ggplot(plot.compare.dat, aes(x=method, y=global.effect.err, fill=method)) + 
-    geom_violin(scale="width") + facet_grid(confounding.coeff~exposure.type, scales="free") + 
-    theme_bw(base_size=16) + guides(fill="none") + labs(x="Method", y="Error in Total Effect") + geom_vline(xintercept=2.5, linetype="longdash", color="gray47")
+g <- ggplot(subset(plot.compare.dat, confounding.coeff == "Confounding 1" & method != "ExpGBM" & method != "ObsGBM-U"), aes(x=method, y=global.effect.err, fill=method)) + 
+    geom_violin(scale="width") + facet_grid(~exposure.type, scales="free") + 
+    theme_bw(base_size=16) + guides(fill="none") + labs(x="Method", y="Error in Total Effect") + 
+  geom_vline(xintercept=1.5, linetype="longdash", color="gray47")
 print(g)
 png("cross-exposure-compare.png", width=1000, height=300)
 print(g)
@@ -94,6 +95,9 @@ indiv.effect.perf <- subset(indiv.effect.perf, select=-c(mean.err, sd.err))
 results.table <- reshape(indiv.effect.perf, timevar ="method", direction="wide", idvar="exposure.type")
 colnames(results.table) <- c("", "Exp. LM", "Obs. GLM")
 library(xtable)
+cat("--------------\n")
+cat("RMSE individual effect estimation\n")
+cat("--------------\n")
 print(xtable(results.table), row.names=FALSE)
 
 
@@ -131,6 +135,9 @@ table.by.method <- subset(table.by.method, select=-c(meanrmse, sdrmse))
 results.table <- reshape(table.by.method, timevar ="method", direction="wide", idvar="exposure.type.x")
 colnames(results.table) <- str_replace(colnames(results.table), "contents.", "")
 library(xtable)
+cat("-----------\n")
+cat("RMSE marginal peer effects\n")
+cat("-----------\n")
 print(xtable(results.table), row.names=FALSE)
 
 ggplot(subset(results.summ, graph.cluster.randomization == FALSE & effect.type == "Marginal Individual" &
