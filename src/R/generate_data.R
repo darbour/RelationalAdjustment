@@ -96,6 +96,8 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
       cat("Finished loading matrix")
       nsubjects <- nrow(adj.mat)
       adjacency.file = TRUE
+
+      net <- graph.adjacency(adj.mat)
     }
     set.seed(random.seed)
     
@@ -189,7 +191,7 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
 
 # This function creates a collection of run configurations in a specified directory
 create.rw.configurations <- function(base.dir) {
-  graph.settings <- data.frame(graph.type=c('../../data/email-Enron.txt', '../../data/web-Stanford.txt'))
+  graph.settings <- data.frame(graph.type=c('../../data/email-Enron.txt'))
   
   observational.function.settings <- expand.grid(exposure.type=c("linear", "sigmoid",  "rbf-friends"), 
                                                 of.beta=c(3), ot.beta=c(3), 
@@ -198,7 +200,13 @@ create.rw.configurations <- function(base.dir) {
                                            expand.grid(exposure.type=c("linear", "sigmoid",  "rbf-friends"), 
                                                  of.beta=c(3), ot.beta=c(1), 
                                                  confounding.coeff=c(3), treatment.autocorr.coeff=c(2), graph.cluster.randomization=FALSE))
-  function.settings <- observational.function.settings
+  experimental.function.settings <- expand.grid(exposure.type=c("linear", "sigmoid",  "rbf-friends"), 
+                                                 of.beta=c(3), ot.beta=c(3), 
+                                                 confounding.coeff=c(0), treatment.autocorr.coeff=c(0), graph.cluster.randomization=TRUE)
+  experimental.function.settings <- rbind(experimental.function.settings, expand.grid(exposure.type=c("linear", "sigmoid",  "rbf-friends"), 
+                                                 of.beta=c(3), ot.beta=c(1), 
+                                                 confounding.coeff=c(0), treatment.autocorr.coeff=c(0), graph.cluster.randomization=TRUE))
+  function.settings <- rbind(experimental.function.settings, observational.function.settings)
   # exaggerate effects for some classes of models
   multipliers <- list("sigmoid"=10)
   for(type in names(multipliers)) {
