@@ -60,7 +60,9 @@ compare.exp.obs <- rbind(observational.configs, experimental.configs)
 g <- ggplot(subset(compare.exp.obs, exposure.type == "linear" & method != "ObsLM"), 
        aes(x=method, y=global.effect.err, fill=method)) + geom_boxplot(notch=TRUE) + theme_bw() + guides(fill="none") + 
       labs(x="Method", y="Error in Total Effect") + geom_vline(xintercept=2.5, size=1, linetype="longdash", color="gray47") +
-      scale_fill_manual(values=c("ExpHT"="slateblue", "ExpLM"="gray47", "ObsGBM"="firebrick", "ObsLM"="deepskyblue3", "ObsGBM-U"="indianred2"))
+      scale_fill_manual(values=c(
+        "ExpHT"="slateblue", "ExpLM"="gray47", "ExpGBM"="navy",
+        "ObsGBM"="firebrick", "ObsLM"="deepskyblue3", "ObsGBM-U"="indianred2"))
 print(g)
 png("exp-obs-compare.png", width=400, height=300)
 print(g)
@@ -73,10 +75,11 @@ plot.compare.dat <- subset(compare.exp.obs, exposure.type != "exponential" & met
                                 (treatment.autocorr.coeff == 0 & graph.cluster.randomization == TRUE)))
 plot.compare.dat$exposure.type <- revalue(plot.compare.dat$exposure.type, c("linear"="Linear", "rbf-friends"="RBF", "sigmoid"="Sigmoid"))
 plot.compare.dat$confounding.coeff <- paste0("Confounding ", plot.compare.dat$confounding.coeff)
-g <- ggplot(subset(plot.compare.dat, confounding.coeff == "Confounding 1" & method != "ExpGBM" & method != "ObsGBM-U"), aes(x=method, y=global.effect.err, fill=method)) + 
-    geom_violin(scale="width") + facet_grid(~exposure.type, scales="free") + 
+g <- ggplot(plot.compare.dat, aes(x=method, y=global.effect.err, fill=method)) +
+  #subset(plot.compare.dat, confounding.coeff == "Confounding 1" & method != "ExpGBM" & method != "ObsGBM-U") + 
+    geom_violin(scale="width") + facet_grid(confounding.coeff~exposure.type, scales="free") + 
     theme_bw(base_size=16) + guides(fill="none") + labs(x="Method", y="Error in Total Effect") + 
-  geom_vline(xintercept=1.5, linetype="longdash", color="gray47")
+  geom_vline(xintercept=2.5, linetype="longdash", color="gray47")
 print(g)
 png("cross-exposure-compare.png", width=1000, height=300)
 print(g)

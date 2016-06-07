@@ -25,13 +25,16 @@ results.with.actuals <- merge(melt.results, subset(subset(melt.results, method==
                               by=c("config", "trial", "variable", "effect.type", "setting"), suffixes=c(".est", ".act"))
 results.with.config <- merge(results.with.actuals, configuration, by.x="config", by.y="X")
 
-results.with.config$global.effect.err <- results.with.config$global.effect.est - results.with.config$global.effect.act
+results.with.config <- subset(results.with.config, 
+  (method == "Exp-LM-IND" & graph.cluster.randomization == TRUE) |
+    (method %in% c("Obs-GBM-Sufficient", "Exp-GBM") & graph.cluster.randomization == FALSE))
 
+results.with.config$global.effect.err <- results.with.config$global.effect.est - results.with.config$global.effect.act
 
 results.with.config$exposure.type <- revalue(results.with.config$exposure.type, c("linear"="Linear", "rbf-friends"="RBF", "sigmoid"="Sigmoid"))
 results.with.config$method <- revalue(results.with.config$method, 
                                         c("Obs-GBM-Sufficient"="ObsGBM", "Exp-LM-IND"="ExpLM", "Exp-GBM"="ObsGBM-U"))
-g <- ggplot(subset(results.with.config, method %in% c("ObsGBM", "ExpLM") & treatment.autocorr.coeff == 2), 
+g <- ggplot(subset(results.with.config, method %in% c("ObsGBM", "ExpLM") & (treatment.autocorr.coeff == 2 | graph.cluster.randomization)), 
        aes(x=method, y=global.effect.err, fill=method)) + geom_boxplot(notch=TRUE) + theme_bw() + guides(fill="none") + 
       facet_wrap(~exposure.type) + theme_bw(base_size=15) +
       labs(x="Method", y="Error in Total Effect") +
@@ -43,7 +46,7 @@ dev.off()
 
 single.inst.per.trial <- subset(results.with.config, setting == 0)
 single.inst.per.trial$indiv.effect.err <- sqrt((single.inst.per.trial$indiv.effect.est - single.inst.per.trial$indiv.effect.act) ** 2)
-indiv.effect.perf <- ddply(subset(single.inst.per.trial, treatment.autocorr.coeff == 2 & method %in% c("ExpLM", "ObsGBM")), 
+indiv.effect.perf <- ddply(subset(single.inst.per.trial, (treatment.autocorr.coeff == 2 | graph.cluster.randomization) & method %in% c("ExpLM", "ObsGBM")), 
       .(method, exposure.type), summarize, mean.err = mean(indiv.effect.err), sd.err = sd(indiv.effect.err))
 indiv.effect.perf$cell <- paste0(round(indiv.effect.perf$mean.err, 4), " (", round(indiv.effect.perf$sd.err, 4), ")")
 indiv.effect.perf <- subset(indiv.effect.perf, select=-c(mean.err, sd.err))
@@ -73,7 +76,7 @@ results.summ <- ddply(subset(results.with.config, !is.na(value.est)), .(config, 
 # bring the configuration back
 results.summ <- merge(results.summ, configuration, by.x="config", by.y="X")
   
-table.by.method <- ddply(subset(results.summ, treatment.autocorr.coeff == 2),
+table.by.method <- ddply(subset(results.summ, (treatment.autocorr.coeff == 2 | graph.cluster.randomization)),
                               .(exposure.type.x, method, of.beta, ot.beta), 
                             summarize, meanrmse = mean(rmse), sdrmse=sd(rmse))
 table.by.method <- subset(subset(table.by.method, method %in% c("ExpLM", "ObsGBM")), select=-c(of.beta, ot.beta))
@@ -82,7 +85,7 @@ table.by.method <- subset(table.by.method, select=-c(meanrmse, sdrmse))
 results.table <- reshape(table.by.method, timevar ="method", direction="wide", idvar="exposure.type.x")
 colnames(results.table) <- str_replace(colnames(results.table), "contents.", "")
 library(xtable)
-cat("Individual effect performance:\n")
+cat("Peer effect performance:\n")
 print(xtable(results.table), row.names=FALSE)
 
 ggplot(subset(results.summ, graph.cluster.randomization == FALSE & effect.type == "Marginal Individual" &
@@ -95,26 +98,3 @@ ggplot(subset(results.summ, graph.cluster.randomization == FALSE & effect.type =
                 method != "Actual" & confounding.coeff == 1 & treatment.autocorr.coeff == 10 & of.beta > 2), 
        aes(x=factor(setting), y=rmse, fill=method)) + facet_grid(exposure.type.x~graph.type, scales="free") +
       geom_boxplot()
-
-# plot some outcome functions
-plotFriends <- function(outcome.fun, file.name=NULL) {
-  fp <- seq(0, 1, length.out=2000)
-  outcome <- aaply(fp, 1, function(v) outcome.fun(friendt=v))
-  g <- qplot(fp, outcome, geom="smooth", se=FALSE) + theme_bw(base_size=20) + labs(x=expression(theta), y="Y")  
-  if(!is.null(file.name)) {
-    png(file.name, width=250, height=250)
-    print(g)
-    dev.off()
-  } else {
-    print(g)
-  }
-}
-gd <- generate.by.index(configuration, 34)
-plotFriends(gd$outcome.function, "sigmoid.png")
-gd <- generate.by.index(configuration, 2256)
-plotFriends(gd$outcome.function, "rbf.png")
-gd <- generate.by.index(configuration, 2253)
-plotFriends(gd$outcome.function, "linear.png")
-gd <- generate.by.index(configuration, 2243)
-plotFriends(gd$outcome.function, "exponential.png")
-
