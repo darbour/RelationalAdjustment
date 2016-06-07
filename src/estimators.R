@@ -1,5 +1,4 @@
-library(plyr)
-
+suppressMessages(library(plyr))
 
 inverse.probs <- function(x) {
     my.hist <- hist(x, breaks=seq(0, 1, 0.1))
@@ -46,7 +45,6 @@ compute.ugander.exposure.prob <- function(adj.mat, clusters, cluster.treatment.p
         ind.cluster.count <- cluster.counts[i,-clusters[i]]
         ind.cluster.count <- ind.cluster.count[which(ind.cluster.count > 0)]
         #cat("intra cluster count: ", intra.cluster.count, "\n")
-        #print(ind.cluster.count)
 
         # compute the number you'd need
         degree <- sum(adj.mat[i,])
@@ -146,7 +144,7 @@ obs.rks.sufficient <- function(adj.mat, data) {
 }
 
 obs.gp.sufficient <- function(adj.mat, data) {
-    require(kernlab)
+    suppressMessages(require(kernlab))
     degrees <- rowSums(adj.mat)
     reg.df <- data
     reg.df$frac.treated <- as.numeric((adj.mat %*% data$t) / degrees)
@@ -178,11 +176,10 @@ lam.II <- function(adj.mat, data) {
 }
 
 obs.gbm.sufficient <- function(adj.mat, data, use.inv.probs=TRUE) {
-    require(gbm)
+    suppressMessages(require(gbm))
     degrees <- rowSums(adj.mat)
     reg.df <- data
     reg.df$frac.treated <- as.numeric((adj.mat %*% data$t) / degrees)
-    print(names(data))
     reg.df$mean.fc1 <- as.numeric((adj.mat %*% data$c1) / degrees)
     reg.df$mean.fc2 <- as.numeric((adj.mat %*% data$c2) / degrees)
     reg.df$var.fc1 <- as.vector((adj.mat %*% data$c1^2) - reg.df$mean.fc1^2) / degrees
@@ -200,7 +197,7 @@ obs.gbm.sufficient <- function(adj.mat, data, use.inv.probs=TRUE) {
 }
 
 gbm.estimate <- function(adj.mat, data) {
-    require(gbm)
+    suppressMessages(require(gbm))
     degrees <- rowSums(adj.mat)
     reg.df <- data
     reg.df$frac.treated <- as.vector((adj.mat %*% data$t) / degrees)
@@ -212,7 +209,7 @@ gbm.estimate <- function(adj.mat, data) {
 
 obs.gp.kme <- function(adj.mat, data) {
     # TODO: call KME code
-    require(kernlab)
+    suppressMessages(require(kernlab))
     degrees <- rowSums(adj.mat)
     reg.df <- data
     reg.df$frac.treated <- (adj.mat %*% data$t) / degrees
@@ -223,7 +220,7 @@ obs.gp.kme <- function(adj.mat, data) {
 }
 
 gp.estimate <- function(adj.mat, data) {
-    require(kernlab)
+    suppressMessages(require(kernlab))
     degrees <- rowSums(adj.mat)
     reg.df <- data
     reg.df$frac.treated <- (adj.mat %*% data$t) / degrees

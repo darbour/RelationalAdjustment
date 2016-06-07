@@ -1,7 +1,5 @@
 #!/usr/bin/env Rscript
 
-#commandArgs <- function(trailingOnly=TRUE) { return(c(10, "~/repos/RelationalICausalInference/experiments/all_configurations.csv", "temp.csv"))} 
-
 source("3-net.R")
 source("estimators.R")
 source("generate_data.R")
@@ -37,7 +35,6 @@ run.one <- function(config_file, config_id, trial) {
   # generate data
   configs <- read.csv(config_file)
   config <- configs[config_id, ]
-  print(config$random.seed)
   random.seed <- config$random.seed * trial
   gendata <- generate.by.index(configs, config_id, random.seed=random.seed, noise.sd=1)
   
@@ -49,7 +46,6 @@ run.one <- function(config_file, config_id, trial) {
                       "Exp-LM-IND"=lam.I, 
                       "Exp-LM-INT"=lam.II, 
                       "Obs-GBM-Sufficient"=obs.gbm.sufficient,
-                      #"Obs-RKS-Sufficient"=obs.rks.sufficient,
                       "Exp-HT"=function(adj.mat, data) {
                         htmeans <- ugander.horvitz.thompson(adj.mat, data, gendata$clusters, 0.75)
                         return(function(myt=NULL, friendt=NULL) {
@@ -68,11 +64,9 @@ run.one <- function(config_file, config_id, trial) {
   } else {
       methods <- list("Actual"=function(junk1, junk2) gendata$outcome.function, 
                       "Obs-GBM-Sufficient"=obs.gbm.sufficient,
-                      #"Obs-GP-KME"=obs.gp.kme,
                       "Obs-LM-Simple"=obs.linear.simple, 
                       "Obs-LM-Sufficient"=obs.linear.sufficient, 
-                      #"Obs-RKS-Sufficient"=obs.rks.sufficient,
-                      # include these as examples of unadjusted analyses
+                      # examples of unadjusted analyses
                       "Exp-GBM"=gbm.estimate, 
                       "Exp-LM-IND"=lam.I, 
                       "Exp-LM-INT"=lam.II) 

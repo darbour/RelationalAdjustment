@@ -1,37 +1,7 @@
-library(igraph)
-library(plyr)
+suppressMessages(library(igraph))
+suppressMessages(library(plyr))
 
 source("3-net.R")
-
-# This function creates a collection of run configurations in a specified directory
-create.configurations <- function(base.dir) {
-  #sizes <- c(100, 400, 900)
-  sizes <- c(1024)
-  graph.settings <- expand.grid(graph.type=c("small-world"), degree=5, p=c(0.0, 0.01, 0.10, 0.15), power=NA, size=sizes)
-  #graph.settings <- rbind(graph.settings, expand.grid(graph.type=c("erdos-renyi"), p=c(0.05, 0.1, 0.2), degree=NA, power=NA, size=sizes))
-  graph.settings <- rbind(graph.settings, expand.grid(graph.type=c("barabasi-albert"), power=c(0.1, 0.5, 1), degree=NA, p=NA, size=sizes))
-  
-  etypes <- c("linear", "sigmoid", "exponential", "rbf-friends")
-  experimental.function.settings <- expand.grid(exposure.type=etypes, 
-                                   of.beta=c(0, 1, 5), ot.beta=c(0, 1, 5), 
-                                   confounding.coeff=c(0), treatment.autocorr.coeff=0, graph.cluster.randomization=TRUE)
-  observational.function.settings <- expand.grid(exposure.type=etypes, 
-                                                 of.beta=c(0, 1, 5), ot.beta=c(0, 1, 5), 
-                                                 confounding.coeff=c(1, 3), treatment.autocorr.coeff=c(0,1,2,10), 
-                                                 graph.cluster.randomization=FALSE)
-  function.settings <- rbind(experimental.function.settings, observational.function.settings)
-  # exaggerate effects for some classes of models
-  multipliers <- list("sigmoid"=2)
-  for(type in names(multipliers)) {
-    function.settings[function.settings$exposure.type == type, ]$of.beta <- function.settings[function.settings$exposure.type == type, ]$of.beta * multipliers[[type]]
-    function.settings[function.settings$exposure.type == type, ]$ot.beta <- function.settings[function.settings$exposure.type == type, ]$ot.beta * multipliers[[type]]
-  }
-  
-  graph.settings$graph.id <- 1:nrow(graph.settings)
-  all.settings <- merge(function.settings, graph.settings)
-  all.settings$random.seed <- 1:nrow(all.settings)
-  write.csv(all.settings, file.path(base.dir, "all_configurations.csv"))
-}
 
 # Generates data corresponding to a row in the configuration file
 #   config.data -- A data frame like that output by 'create.configurations'
@@ -197,7 +167,7 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
 
 # This function creates a collection of run configurations in a specified directory
 create.rw.configurations <- function(base.dir) {
-  graph.settings <- data.frame(graph.type=c('../../data/email-Enron.txt'))
+  graph.settings <- data.frame(graph.type=c('../data/email-Enron.txt'))
   
   observational.function.settings <- expand.grid(exposure.type=c("linear", "sigmoid",  "rbf-friends"), 
                                                 of.beta=c(3), ot.beta=c(3), 
@@ -225,4 +195,30 @@ create.rw.configurations <- function(base.dir) {
   write.csv(all.settings, file.path(base.dir, "all_configurations_rw.csv"))
 }
 
-#create.configurations("~/repos/RelationalICausalInference/experiments/")
+# This function creates a collection of run configurations in a specified directory
+create.configurations <- function(base.dir) {
+  sizes <- c(1024)
+  graph.settings <- expand.grid(graph.type=c("small-world"), degree=5, p=c(0.0, 0.01, 0.10, 0.15), power=NA, size=sizes)
+  graph.settings <- rbind(graph.settings, expand.grid(graph.type=c("barabasi-albert"), power=c(0.1, 0.5, 1), degree=NA, p=NA, size=sizes))
+  
+  etypes <- c("linear", "sigmoid", "exponential", "rbf-friends")
+  experimental.function.settings <- expand.grid(exposure.type=etypes, 
+                                   of.beta=c(0, 1, 5), ot.beta=c(0, 1, 5), 
+                                   confounding.coeff=c(0), treatment.autocorr.coeff=0, graph.cluster.randomization=TRUE)
+  observational.function.settings <- expand.grid(exposure.type=etypes, 
+                                                 of.beta=c(0, 1, 5), ot.beta=c(0, 1, 5), 
+                                                 confounding.coeff=c(1, 3), treatment.autocorr.coeff=c(0,1,2,10), 
+                                                 graph.cluster.randomization=FALSE)
+  function.settings <- rbind(experimental.function.settings, observational.function.settings)
+  # exaggerate effects for some classes of models
+  multipliers <- list("sigmoid"=2)
+  for(type in names(multipliers)) {
+    function.settings[function.settings$exposure.type == type, ]$of.beta <- function.settings[function.settings$exposure.type == type, ]$of.beta * multipliers[[type]]
+    function.settings[function.settings$exposure.type == type, ]$ot.beta <- function.settings[function.settings$exposure.type == type, ]$ot.beta * multipliers[[type]]
+  }
+  
+  graph.settings$graph.id <- 1:nrow(graph.settings)
+  all.settings <- merge(function.settings, graph.settings)
+  all.settings$random.seed <- 1:nrow(all.settings)
+  write.csv(all.settings, file.path(base.dir, "all_configurations.csv"))
+}
