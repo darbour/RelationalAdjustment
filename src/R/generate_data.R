@@ -90,7 +90,7 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
       cat("Loading", graph.type, "\n")
       adj.df <- read.table(as.character(graph.type), sep='\t', skip = 4)
       cat("Converting to sparse matrix ...\n")
-      adj.mat <- sparseMatrix(i=adj.df$V1, j=adj.df$V2, symmetric=TRUE, index1=FALSE, dims=c(max(adj.df) + 1, max(adj.df) + 1))
+      adj.mat <- sparseMatrix(i=adj.df$V1, j=adj.df$V2, x=1, index1=FALSE, dims=c(max(adj.df) + 1, max(adj.df) + 1))
       keepers <- rowSums(adj.mat) > 0
       adj.mat <- adj.mat[keepers, keepers]
       cat("Finished loading matrix")
@@ -119,9 +119,15 @@ generate.data <- function(nsubjects, random.seed, graph.type, graph.parameters, 
     }
     
     if(graph.cluster.randomization) {
-      clustering <- three.net(net)
-      clusters <- clustering$clusters
-      treatment <- clustering$treatment.assignments[clustering$clusters]
+      if(file.exists(paste0(graph.type, ".communities"))) {
+        clusters <- read.csv(paste0(graph.type, ".communities"))$x
+        ctreatment <- rbinom(length(unique(clusters)), 1, 0.5)
+        treatment <- ctreatment[clusters]
+      } else {
+          clustering <- three.net(net)
+          clusters <- clustering$clusters
+          treatment <- clustering$treatment.assignments[clustering$clusters]
+      }
       t.friends <- adj.mat %*% treatment
       friend.prop <- t.friends / rowSums(adj.mat)      
     } else {
